@@ -20,6 +20,53 @@ let steps = null;    // 정렬 제너레이터 (정렬 중이 아니면 null)
 let timer = null;    // 자동 실행 타이머 (자동 실행 중이 아니면 null)
 
 
+// ----- 버블 정렬 -----
+// 이웃한 두 값을 비교해 앞이 더 크면 바꾼다. 한 바퀴 돌 때마다 가장 큰 값이 맨 뒤로 간다.
+// yield하는 상태:
+//   array      : 그 순간의 배열 (복사본)
+//   compare    : 비교 중인 두 칸의 번호
+//   swap       : 방금 바꾼 두 칸의 번호
+//   sortedFrom : 이 번호부터 끝까지는 자리가 확정됨
+//   message    : 화면에 보여 줄 설명
+//   done       : 정렬이 끝났으면 true
+function* bubbleSort(original) {
+  const arr = original.slice();   // 원본을 건드리지 않도록 복사해서 정렬
+  const n = arr.length;
+
+  for (let i = 0; i < n - 1; i++) {
+    // i바퀴가 끝나면 뒤에서 i개는 자리가 확정되어 있으므로 비교하지 않는다
+    for (let j = 0; j < n - 1 - i; j++) {
+      yield {
+        array: arr.slice(),
+        compare: [j, j + 1],
+        sortedFrom: n - i,
+        message: arr[j] + ' 와(과) ' + arr[j + 1] + ' 비교',
+      };
+
+      if (arr[j] > arr[j + 1]) {
+        const temp = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = temp;
+
+        yield {
+          array: arr.slice(),
+          swap: [j, j + 1],
+          sortedFrom: n - i,
+          message: arr[j + 1] + ' 이(가) 더 커서 자리 교환',
+        };
+      }
+    }
+  }
+
+  yield {
+    array: arr.slice(),
+    sortedFrom: 0,
+    message: '정렬 완료!',
+    done: true,
+  };
+}
+
+
 // ----- 막대 그리기 -----
 // state는 정렬 함수가 yield한 상태와 같은 모양이다
 function renderBars(state) {
