@@ -23,6 +23,13 @@
     <!-- 조작 버튼: 실행 중에는 sort.js가 비활성화한다 -->
     <section class="controls">
       <label>
+        알고리즘
+        <select id="algo-select">
+          <option value="bubble">버블 정렬</option>
+          <option value="selection">선택 정렬</option>
+        </select>
+      </label>
+      <label>
         배열 크기 (5~50)
         <input type="number" id="size-input" min="5" max="50" value="10">
       </label>
@@ -33,7 +40,7 @@
 
     <!-- 막대 그래프 -->
     <section>
-      <h3>버블 정렬</h3>
+      <h3 id="algo-title">버블 정렬</h3>
       <div id="bars" class="bars"></div>
       <p id="message" class="message">무작위 생성으로 배열을 만든 뒤 실행해 보세요.</p>
 

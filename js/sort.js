@@ -7,6 +7,8 @@ const MAX_SIZE = 50;
 const DELAY = 300;       // 자동 실행 시 한 단계 간격(ms). 속도 조절은 3주차에 추가
 
 // 화면 요소
+const algoSelect = document.getElementById('algo-select');
+const algoTitle = document.getElementById('algo-title');
 const sizeInput = document.getElementById('size-input');
 const randomBtn = document.getElementById('random-btn');
 const runBtn = document.getElementById('run-btn');
@@ -26,7 +28,8 @@ let timer = null;    // 자동 실행 타이머 (자동 실행 중이 아니면 
 //   array      : 그 순간의 배열 (복사본)
 //   compare    : 비교 중인 두 칸의 번호
 //   swap       : 방금 바꾼 두 칸의 번호
-//   sortedFrom : 이 번호부터 끝까지는 자리가 확정됨
+//   sortedStart, sortedEnd : sortedStart 이상 sortedEnd 미만 번호는 자리가 확정됨
+//                            (버블은 뒤쪽부터, 선택은 앞쪽부터 확정되므로 범위로 표시)
 //   message    : 화면에 보여 줄 설명
 //   done       : 정렬이 끝났으면 true
 function* bubbleSort(original) {
@@ -39,7 +42,8 @@ function* bubbleSort(original) {
       yield {
         array: arr.slice(),
         compare: [j, j + 1],
-        sortedFrom: n - i,
+        sortedStart: n - i,
+        sortedEnd: n,
         message: arr[j] + ' 와(과) ' + arr[j + 1] + ' 비교',
       };
 
@@ -51,7 +55,8 @@ function* bubbleSort(original) {
         yield {
           array: arr.slice(),
           swap: [j, j + 1],
-          sortedFrom: n - i,
+          sortedStart: n - i,
+          sortedEnd: n,
           message: arr[j + 1] + ' 이(가) 더 커서 자리 교환',
         };
       }
@@ -60,7 +65,59 @@ function* bubbleSort(original) {
 
   yield {
     array: arr.slice(),
-    sortedFrom: 0,
+    sortedStart: 0,
+    sortedEnd: n,
+    message: '정렬 완료!',
+    done: true,
+  };
+}
+
+
+// ----- 선택 정렬 -----
+// 아직 정렬 안 된 부분에서 가장 작은 값을 찾아 맨 앞(i번)과 바꾼다.
+// 한 바퀴 돌 때마다 앞에서부터 한 칸씩 자리가 확정된다.
+// 비교 중 표시(compare)는 [지금까지의 최솟값 위치, 지금 보는 위치]
+function* selectionSort(original) {
+  const arr = original.slice();
+  const n = arr.length;
+
+  for (let i = 0; i < n - 1; i++) {
+    let minIndex = i;   // 우선 i번을 최솟값으로 놓고 시작
+
+    for (let j = i + 1; j < n; j++) {
+      yield {
+        array: arr.slice(),
+        compare: [minIndex, j],
+        sortedStart: 0,
+        sortedEnd: i,
+        message: '현재 최솟값 ' + arr[minIndex] + ' 와(과) ' + arr[j] + ' 비교',
+      };
+
+      if (arr[j] < arr[minIndex]) {
+        minIndex = j;
+      }
+    }
+
+    // 최솟값이 이미 i번에 있으면 바꿀 필요가 없다
+    if (minIndex !== i) {
+      const temp = arr[i];
+      arr[i] = arr[minIndex];
+      arr[minIndex] = temp;
+
+      yield {
+        array: arr.slice(),
+        swap: [i, minIndex],
+        sortedStart: 0,
+        sortedEnd: i,
+        message: '최솟값 ' + arr[i] + ' 을(를) ' + (i + 1) + '번째 자리로 이동',
+      };
+    }
+  }
+
+  yield {
+    array: arr.slice(),
+    sortedStart: 0,
+    sortedEnd: n,
     message: '정렬 완료!',
     done: true,
   };
@@ -79,7 +136,7 @@ function renderBars(state) {
     bar.style.height = (value / state.array.length * 100) + '%';
     bar.title = value;   // 마우스를 올리면 값이 보인다
 
-    if (i >= state.sortedFrom) {
+    if (i >= state.sortedStart && i < state.sortedEnd) {
       bar.classList.add('sorted');
     }
     if (state.compare && state.compare.includes(i)) {
@@ -127,7 +184,15 @@ function resetArray() {
   const size = readSize();
   numbers = makeRandomArray(size);
   steps = null;   // 새 배열이므로 진행 중이던 정렬은 버린다
-  renderBars({ array: numbers, sortedFrom: numbers.length });
+  renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
+  message.textContent = '실행 또는 한 단계를 눌러 보세요.';
+}
+
+// 알고리즘을 바꾸면 진행 중이던 단계는 버리고 지금 배열을 색 없이 다시 보여 준다
+function changeAlgorithm() {
+  algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
+  steps = null;
+  renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
@@ -135,16 +200,23 @@ function resetArray() {
 // ----- 단계 실행 -----
 // 실행 중에는 입력 관련 버튼을 모두 막는다
 function setRunning(running) {
+  algoSelect.disabled = running;
   sizeInput.disabled = running;
   randomBtn.disabled = running;
   runBtn.disabled = running;
   stepBtn.disabled = running;
 }
 
-// 정렬 중이 아니면 현재 배열로 새 제너레이터를 만든다
+// 정렬 중이 아니면 고른 알고리즘으로 새 제너레이터를 만든다
 function prepareSteps() {
-  if (steps === null) {
+  if (steps !== null) {
+    return;
+  }
+
+  if (algoSelect.value === 'bubble') {
     steps = bubbleSort(numbers);
+  } else if (algoSelect.value === 'selection') {
+    steps = selectionSort(numbers);
   }
 }
 
@@ -171,6 +243,7 @@ function finish() {
 
 
 // ----- 버튼 연결 -----
+algoSelect.addEventListener('change', changeAlgorithm);
 randomBtn.addEventListener('click', resetArray);
 
 runBtn.addEventListener('click', function () {

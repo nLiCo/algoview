@@ -126,6 +126,11 @@ input[type="number"] {
   font: inherit;
 }
 
+select {
+  padding: 6px;
+  font: inherit;
+}
+
 /* ===== 시작 화면의 알고리즘 카드 목록 ===== */
 .card-list {
   list-style: none;
