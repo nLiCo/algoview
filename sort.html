@@ -27,6 +27,7 @@
         <select id="algo-select">
           <option value="bubble">버블 정렬</option>
           <option value="selection">선택 정렬</option>
+          <option value="insertion">삽입 정렬</option>
         </select>
       </label>
       <label>
@@ -49,7 +50,9 @@
         <li><span class="swatch"></span>대기</li>
         <li><span class="swatch compare"></span>비교 중</li>
         <li><span class="swatch swap"></span>교환</li>
-        <li><span class="swatch sorted"></span>정렬 완료</li>
+        <!-- 삽입 정렬을 골랐을 때만 sort.js가 보이게 한다 -->
+        <li id="ordered-legend" hidden><span class="swatch ordered"></span>순서만 맞음 (자리 미확정)</li>
+        <li><span class="swatch sorted"></span>자리 확정</li>
       </ul>
     </section>
   </main>

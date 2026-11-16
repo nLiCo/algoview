@@ -9,6 +9,7 @@ const DELAY = 300;       // 자동 실행 시 한 단계 간격(ms). 속도 조�
 // 화면 요소
 const algoSelect = document.getElementById('algo-select');
 const algoTitle = document.getElementById('algo-title');
+const orderedLegend = document.getElementById('ordered-legend');
 const sizeInput = document.getElementById('size-input');
 const randomBtn = document.getElementById('random-btn');
 const runBtn = document.getElementById('run-btn');
@@ -30,6 +31,8 @@ let timer = null;    // 자동 실행 타이머 (자동 실행 중이 아니면 
 //   swap       : 방금 바꾼 두 칸의 번호
 //   sortedStart, sortedEnd : sortedStart 이상 sortedEnd 미만 번호는 자리가 확정됨
 //                            (버블은 뒤쪽부터, 선택은 앞쪽부터 확정되므로 범위로 표시)
+//   orderedEnd : 0 이상 orderedEnd 미만 번호는 순서만 맞고 아직 확정은 아님
+//                (삽입 정렬에서만 쓴다. 없으면 표시하지 않는다)
 //   message    : 화면에 보여 줄 설명
 //   done       : 정렬이 끝났으면 true
 function* bubbleSort(original) {
@@ -124,6 +127,59 @@ function* selectionSort(original) {
 }
 
 
+// ----- 삽입 정렬 -----
+// i번 값을 앞쪽(0 ~ i-1)의 정렬된 부분에 끼워 넣는다.
+// 앞의 값이 더 크면 한 칸씩 자리를 바꾸며 앞으로 옮기고, 앞의 값이 더 작아지면 멈춘다.
+// 앞쪽은 순서만 맞을 뿐 나중에 값이 끼어들 수 있으므로, 확정(초록) 대신 orderedEnd(연한 초록)로 표시한다.
+// 옮기고 있는 값은 항상 비교·교환 색으로 칠해지므로, 0 ~ i번 전체를 정렬된 앞부분으로 칠해도 된다.
+function* insertionSort(original) {
+  const arr = original.slice();
+  const n = arr.length;
+
+  for (let i = 1; i < n; i++) {
+    let j = i;   // 지금 옮기고 있는 값의 위치
+
+    while (j > 0) {
+      yield {
+        array: arr.slice(),
+        compare: [j - 1, j],
+        sortedStart: 0,
+        sortedEnd: 0,
+        orderedEnd: i + 1,
+        message: arr[j - 1] + ' 와(과) ' + arr[j] + ' 비교',
+      };
+
+      if (arr[j - 1] > arr[j]) {
+        const temp = arr[j - 1];
+        arr[j - 1] = arr[j];
+        arr[j] = temp;
+
+        yield {
+          array: arr.slice(),
+          swap: [j - 1, j],
+          sortedStart: 0,
+          sortedEnd: 0,
+          orderedEnd: i + 1,
+          message: arr[j - 1] + ' 을(를) 앞으로 한 칸 이동',
+        };
+
+        j--;
+      } else {
+        break;   // 앞의 값이 더 작으면 제자리를 찾은 것
+      }
+    }
+  }
+
+  yield {
+    array: arr.slice(),
+    sortedStart: 0,
+    sortedEnd: n,
+    message: '정렬 완료!',
+    done: true,
+  };
+}
+
+
 // ----- 막대 그리기 -----
 // state는 정렬 함수가 yield한 상태와 같은 모양이다
 function renderBars(state) {
@@ -136,6 +192,9 @@ function renderBars(state) {
     bar.style.height = (value / state.array.length * 100) + '%';
     bar.title = value;   // 마우스를 올리면 값이 보인다
 
+    if (state.orderedEnd !== undefined && i < state.orderedEnd) {
+      bar.classList.add('ordered');
+    }
     if (i >= state.sortedStart && i < state.sortedEnd) {
       bar.classList.add('sorted');
     }
@@ -191,6 +250,8 @@ function resetArray() {
 // 알고리즘을 바꾸면 진행 중이던 단계는 버리고 지금 배열을 색 없이 다시 보여 준다
 function changeAlgorithm() {
   algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
+  // "순서만 맞음" 색은 삽입 정렬에서만 쓰므로 그때만 범례에 보인다
+  orderedLegend.hidden = (algoSelect.value !== 'insertion');
   steps = null;
   renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
@@ -217,6 +278,8 @@ function prepareSteps() {
     steps = bubbleSort(numbers);
   } else if (algoSelect.value === 'selection') {
     steps = selectionSort(numbers);
+  } else if (algoSelect.value === 'insertion') {
+    steps = insertionSort(numbers);
   }
 }
 
@@ -259,3 +322,5 @@ stepBtn.addEventListener('click', function () {
 
 // 처음 페이지를 열었을 때 배열 하나를 만들어 둔다
 resetArray();
+// 새로고침하면 브라우저가 선택 칸 값을 기억할 수 있으므로 제목·범례를 그 값에 맞춘다
+changeAlgorithm();

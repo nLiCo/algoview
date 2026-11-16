@@ -14,6 +14,7 @@
   --color-compare: #f2b632;   /* 비교 중 */
   --color-swap: #e05252;      /* 교환 */
   --color-sorted: #4caf7a;    /* 정렬 완료 */
+  --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 확정 아님 (삽입 정렬 앞부분) */
 }
 
 /* 패딩·테두리를 너비 안에 포함시켜 크기 계산을 쉽게 한다 */
@@ -182,6 +183,11 @@ select {
   border-radius: 3px 3px 0 0;
 }
 
+/* 비교·교환 색이 이 색보다 우선하도록 앞쪽에 둔다 */
+.bar.ordered {
+  background: var(--color-ordered);
+}
+
 .bar.sorted {
   background: var(--color-sorted);
 }
@@ -231,6 +237,10 @@ select {
 
 .swatch.sorted {
   background: var(--color-sorted);
+}
+
+.swatch.ordered {
+  background: var(--color-ordered);
 }
 
 /* ===== 바닥글 ===== */
