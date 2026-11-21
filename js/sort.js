@@ -4,7 +4,8 @@
 
 const MIN_SIZE = 5;
 const MAX_SIZE = 50;
-const DELAY = 300;       // 자동 실행 시 한 단계 간격(ms). 속도 조절은 3주차에 추가
+// 속도 1~5단계별 한 단계 간격(ms). 숫자가 클수록 빠르다
+const SPEED_DELAYS = [1000, 500, 300, 150, 50];
 
 // 화면 요소
 const algoSelect = document.getElementById('algo-select');
@@ -13,7 +14,9 @@ const orderedLegend = document.getElementById('ordered-legend');
 const sizeInput = document.getElementById('size-input');
 const randomBtn = document.getElementById('random-btn');
 const runBtn = document.getElementById('run-btn');
+const pauseBtn = document.getElementById('pause-btn');
 const stepBtn = document.getElementById('step-btn');
+const speedInput = document.getElementById('speed-input');
 const barsBox = document.getElementById('bars');
 const message = document.getElementById('message');
 
@@ -243,6 +246,7 @@ function resetArray() {
   const size = readSize();
   numbers = makeRandomArray(size);
   steps = null;   // 새 배열이므로 진행 중이던 정렬은 버린다
+  runBtn.textContent = '실행';
   renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
@@ -253,19 +257,38 @@ function changeAlgorithm() {
   // "순서만 맞음" 색은 삽입 정렬에서만 쓰므로 그때만 범례에 보인다
   orderedLegend.hidden = (algoSelect.value !== 'insertion');
   steps = null;
+  runBtn.textContent = '실행';
   renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
 
 // ----- 단계 실행 -----
-// 실행 중에는 입력 관련 버튼을 모두 막는다
+// 실행 중에는 입력 관련 버튼을 모두 막고, 일시정지 버튼만 켠다
+// (속도 조절은 실행 중에도 바꿀 수 있게 막지 않는다)
 function setRunning(running) {
   algoSelect.disabled = running;
   sizeInput.disabled = running;
   randomBtn.disabled = running;
   runBtn.disabled = running;
   stepBtn.disabled = running;
+  pauseBtn.disabled = !running;
+}
+
+// 속도 입력값(1~5)에 맞는 간격(ms)
+function getDelay() {
+  return SPEED_DELAYS[Number(speedInput.value) - 1];
+}
+
+// 자동 실행 타이머를 지금 속도로 시작한다
+function startTimer() {
+  timer = setInterval(doStep, getDelay());
+}
+
+// 타이머만 멈춘다. 제너레이터(steps)는 그대로 두므로 실행·한 단계로 이어서 진행할 수 있다
+function stopTimer() {
+  clearInterval(timer);
+  timer = null;
 }
 
 // 정렬 중이 아니면 고른 알고리즘으로 새 제너레이터를 만든다
@@ -298,9 +321,9 @@ function doStep() {
 }
 
 function finish() {
-  clearInterval(timer);
-  timer = null;
+  stopTimer();
   steps = null;
+  runBtn.textContent = '실행';
   setRunning(false);
 }
 
@@ -309,10 +332,27 @@ function finish() {
 algoSelect.addEventListener('change', changeAlgorithm);
 randomBtn.addEventListener('click', resetArray);
 
+// 처음 실행이면 새로 시작하고, 일시정지 후라면 멈춘 곳부터 이어서 진행한다
 runBtn.addEventListener('click', function () {
   prepareSteps();
   setRunning(true);
-  timer = setInterval(doStep, DELAY);
+  startTimer();
+});
+
+// 일시정지하면 실행 버튼이 "재개"로 바뀐다. 진행이 끝나거나 처음부터 다시 하게 되면 "실행"으로 돌아온다
+pauseBtn.addEventListener('click', function () {
+  stopTimer();
+  setRunning(false);
+  runBtn.textContent = '재개';
+  message.textContent = message.textContent + ' (일시정지)';
+});
+
+// 실행 중에 속도를 바꾸면 타이머를 새 간격으로 다시 건다
+speedInput.addEventListener('input', function () {
+  if (timer !== null) {
+    stopTimer();
+    startTimer();
+  }
 });
 
 stepBtn.addEventListener('click', function () {
