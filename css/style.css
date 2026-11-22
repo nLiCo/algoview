@@ -13,6 +13,9 @@
   --color-bar: #9bb5ea;       /* 대기 */
   --color-compare: #f2b632;   /* 비교 중 */
   --color-swap: #e05252;      /* 교환 */
+  --color-group: #eceef2;        /* 막대 뒤 배경: 묶음 (병합 정렬) */
+  --color-group-left: #e3ecfb;   /* 막대 뒤 배경: 합치는 왼쪽 묶음 (병합 정렬) */
+  --color-group-right: #fdecd8;  /* 막대 뒤 배경: 합치는 오른쪽 묶음 (병합 정렬) */
   --color-sorted: #4caf7a;    /* 정렬 완료 */
   --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 확정 아님 (삽입 정렬 앞부분) */
 }
@@ -171,12 +174,39 @@ select {
 .bars {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
   height: 300px;
   border-bottom: 2px solid var(--color-line);
 }
 
-/* 막대 하나: 너비는 개수에 맞게 똑같이 나누고, 높이는 sort.js가 %로 정한다 */
+/* 막대 하나가 들어가는 칸: 그래프 높이만큼 세워 두고, 배경색으로 병합 정렬의 묶음을 표시한다.
+   막대 사이 간격은 칸의 좌우 여백으로 만든다 (gap을 쓰면 묶음 배경이 끊겨 보인다) */
+.slot {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 1px;
+}
+
+/* 묶음 배경. 합치는 두 묶음의 색이 이 색보다 우선하도록 앞쪽에 둔다 */
+.slot.group {
+  background: var(--color-group);
+}
+
+/* 묶음이 새로 시작하는 칸: 왼쪽에 섹션 배경색 테두리를 둘러 앞 묶음과 떨어져 보이게 한다 */
+.slot.group-start {
+  border-left: 3px solid var(--color-box);
+}
+
+.slot.group-left {
+  background: var(--color-group-left);
+}
+
+.slot.group-right {
+  background: var(--color-group-right);
+}
+
+/* 막대 하나: 칸 너비를 꽉 채우고, 높이는 sort.js가 %로 정한다 */
 .bar {
   flex: 1;
   background: var(--color-bar);
@@ -233,6 +263,22 @@ select {
 
 .swatch.swap {
   background: var(--color-swap);
+}
+
+/* 묶음 색은 연해서 테두리를 둘러 보이게 한다 */
+.swatch.group {
+  background: var(--color-group);
+  border: 1px solid var(--color-line);
+}
+
+.swatch.group-left {
+  background: var(--color-group-left);
+  border: 1px solid var(--color-line);
+}
+
+.swatch.group-right {
+  background: var(--color-group-right);
+  border: 1px solid var(--color-line);
 }
 
 .swatch.sorted {

@@ -11,6 +11,8 @@ const SPEED_DELAYS = [1000, 500, 300, 150, 50];
 const algoSelect = document.getElementById('algo-select');
 const algoTitle = document.getElementById('algo-title');
 const orderedLegend = document.getElementById('ordered-legend');
+const blockLegend = document.getElementById('block-legend');
+const groupLegend = document.getElementById('group-legend');
 const sizeInput = document.getElementById('size-input');
 const randomBtn = document.getElementById('random-btn');
 const runBtn = document.getElementById('run-btn');
@@ -187,19 +189,174 @@ function* insertionSort(original) {
 }
 
 
+// ----- 병합 정렬 -----
+// 배열을 반으로 나눠 각각 정렬한 뒤, 정렬된 두 묶음을 앞에서부터 비교하며 하나로 합친다.
+// 보통은 임시 배열에 합친 뒤 다시 옮겨 쓰지만, 그 과정을 그대로 그리면 같은 값의 막대가
+// 두 개 보이게 된다. 그래서 여기서는 배열 안에서 바로 합친다:
+//   오른쪽 값이 더 작으면 그 값을 앞으로 가져오고, 왼쪽 묶음의 남은 값들을 한 칸씩 뒤로 민다.
+// 이렇게 하면 화면의 막대는 언제나 1 ~ n이 한 개씩이다.
+// 교환은 오른쪽 값이 앞으로 끼어들어 값이 실제로 움직였을 때만 1회로 센다 (swap: [값이 들어간 칸])
+// 추가로 yield하는 상태:
+//   ordered : 칸마다 true/false. true인 칸은 합치는 중인 결과의 앞부분(순서만 맞음)
+//   blockStart : 칸마다 true/false. true인 칸에서 새 묶음(정렬된 작은 배열)이 시작한다.
+//                처음에는 한 칸짜리 묶음 n개이고, 두 묶음을 합치기 시작하면 한 묶음이 된다
+//   leftGroup, rightGroup : [시작, 끝] (끝 번호 포함). 합치고 있는 왼쪽·오른쪽 묶음 중 아직 합치지 않은 값의 범위.
+//                           시작이 끝보다 크면 그 묶음은 다 쓴 것이다
+function* mergeSort(original) {
+  const arr = original.slice();
+  const n = arr.length;
+  const ordered = [];
+  const blockStart = [];
+  for (let i = 0; i < n; i++) {
+    ordered.push(false);
+    blockStart.push(true);
+  }
+
+  // 제너레이터 안에서 다른 제너레이터의 단계를 이어서 내보낼 때는 yield*를 쓴다
+  yield* mergeSortRange(arr, 0, n - 1, ordered, blockStart);
+
+  yield {
+    array: arr.slice(),
+    sortedStart: 0,
+    sortedEnd: n,
+    message: '정렬 완료!',
+    done: true,
+  };
+}
+
+// left번 ~ right번 구간을 정렬한다 (자기 자신을 다시 부르는 재귀)
+function* mergeSortRange(arr, left, right, ordered, blockStart) {
+  if (left >= right) {
+    return;   // 한 칸짜리는 이미 정렬된 것
+  }
+
+  const mid = Math.floor((left + right) / 2);
+  yield* mergeSortRange(arr, left, mid, ordered, blockStart);
+  yield* mergeSortRange(arr, mid + 1, right, ordered, blockStart);
+  yield* merge(arr, left, mid, right, ordered, blockStart);
+}
+
+// 정렬된 두 묶음 left ~ mid, mid+1 ~ right를 합친다
+function* merge(arr, left, mid, right, ordered, blockStart) {
+  let k = left;        // 합친 결과에서 다음에 채울 칸. 왼쪽 묶음에 남은 값은 항상 k번 ~ leftEnd번에 있다
+  let leftEnd = mid;   // 왼쪽 묶음의 마지막 칸 (오른쪽 값이 끼어들 때마다 한 칸 뒤로 밀린다)
+  let j = mid + 1;     // 오른쪽 묶음에서 다음에 볼 칸
+
+  // 이 구간은 지금부터 새로 합치므로 "순서만 맞음" 표시를 지우고,
+  // 두 묶음을 한 묶음으로 만든다 (묶음 시작은 left번 하나만 남긴다)
+  for (let i = left; i <= right; i++) {
+    ordered[i] = false;
+    if (i > left) {
+      blockStart[i] = false;
+    }
+  }
+
+  // 두 묶음 모두 값이 남아 있는 동안, 두 묶음의 맨 앞 값끼리 비교한다
+  while (k <= leftEnd && j <= right) {
+    yield {
+      array: arr.slice(),
+      compare: [k, j],
+      sortedStart: 0,
+      sortedEnd: 0,
+      ordered: ordered.slice(),
+      blockStart: blockStart.slice(),
+      leftGroup: [k, leftEnd],
+      rightGroup: [j, right],
+      message: '왼쪽 ' + arr[k] + ' 와(과) 오른쪽 ' + arr[j] + ' 비교',
+    };
+
+    if (arr[j] < arr[k]) {
+      // 오른쪽 값을 k번으로 가져오고, k번 ~ j-1번 값은 한 칸씩 뒤로 민다
+      const value = arr[j];
+      for (let m = j; m > k; m--) {
+        arr[m] = arr[m - 1];
+      }
+      arr[k] = value;
+      leftEnd++;
+      j++;
+      ordered[k] = true;
+
+      // 값이 실제로 움직였으므로 교환 1회 (swap에는 값이 들어간 칸 하나만 담는다)
+      yield {
+        array: arr.slice(),
+        swap: [k],
+        sortedStart: 0,
+        sortedEnd: 0,
+        ordered: ordered.slice(),
+        blockStart: blockStart.slice(),
+        leftGroup: [k + 1, leftEnd],
+        rightGroup: [j, right],
+        message: '오른쪽 ' + value + ' 이(가) 더 작아서 ' + (k + 1) + '번째 자리로 가져오고, 왼쪽 값들을 한 칸씩 뒤로 민다',
+      };
+    } else {
+      // 왼쪽 값이 이미 제자리이므로 움직이지 않는다 (교환 아님)
+      ordered[k] = true;
+
+      yield {
+        array: arr.slice(),
+        sortedStart: 0,
+        sortedEnd: 0,
+        ordered: ordered.slice(),
+        blockStart: blockStart.slice(),
+        leftGroup: [k + 1, leftEnd],
+        rightGroup: [j, right],
+        message: '왼쪽 ' + arr[k] + ' 이(가) 더 작아서 그대로 둔다',
+      };
+    }
+
+    k++;
+  }
+
+  // 한쪽 묶음을 다 쓰면, 다른 쪽에 남은 값은 이미 순서대로 제자리에 있다
+  for (let i = k; i <= right; i++) {
+    ordered[i] = true;
+  }
+
+  yield {
+    array: arr.slice(),
+    sortedStart: 0,
+    sortedEnd: 0,
+    ordered: ordered.slice(),
+    blockStart: blockStart.slice(),
+    message: '남은 값은 이미 제자리에 있으므로 그대로 둔다 (' + (left + 1) + '~' + (right + 1) + '번째 합치기 끝)',
+  };
+}
+
+
 // ----- 막대 그리기 -----
 // state는 정렬 함수가 yield한 상태와 같은 모양이다
+// 막대마다 칸(slot)을 하나씩 만들고 그 안에 막대를 넣는다. 칸의 배경색으로 병합 정렬의 묶음을 보여 준다
+// (묶음은 회색, 그중 합치고 있는 두 묶음은 파랑·주황)
 function renderBars(state) {
   barsBox.innerHTML = '';   // 기존 막대를 모두 지우고 새로 그린다
 
   for (let i = 0; i < state.array.length; i++) {
     const value = state.array[i];
+
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    if (state.blockStart) {
+      slot.classList.add('group');
+      if (i > 0 && state.blockStart[i]) {
+        slot.classList.add('group-start');
+      }
+    }
+    if (state.leftGroup && i >= state.leftGroup[0] && i <= state.leftGroup[1]) {
+      slot.classList.add('group-left');
+    }
+    if (state.rightGroup && i >= state.rightGroup[0] && i <= state.rightGroup[1]) {
+      slot.classList.add('group-right');
+    }
+
     const bar = document.createElement('div');
     bar.className = 'bar';
     bar.style.height = (value / state.array.length * 100) + '%';
     bar.title = value;   // 마우스를 올리면 값이 보인다
 
     if (state.orderedEnd !== undefined && i < state.orderedEnd) {
+      bar.classList.add('ordered');
+    }
+    if (state.ordered && state.ordered[i]) {
       bar.classList.add('ordered');
     }
     if (i >= state.sortedStart && i < state.sortedEnd) {
@@ -212,7 +369,8 @@ function renderBars(state) {
       bar.classList.add('swap');
     }
 
-    barsBox.appendChild(bar);
+    slot.appendChild(bar);
+    barsBox.appendChild(slot);
   }
 }
 
@@ -273,8 +431,14 @@ function resetArray() {
 // 알고리즘을 바꾸면 진행 중이던 단계는 버리고 지금 배열을 색 없이 다시 보여 준다
 function changeAlgorithm() {
   algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
-  // "순서만 맞음" 색은 삽입 정렬에서만 쓰므로 그때만 범례에 보인다
-  orderedLegend.hidden = (algoSelect.value !== 'insertion');
+  // "순서만 맞음" 색은 삽입·병합 정렬에서만, 묶음 색은 병합 정렬에서만 쓰므로 그때만 범례에 보인다
+  if (algoSelect.value === 'insertion' || algoSelect.value === 'merge') {
+    orderedLegend.hidden = false;
+  } else {
+    orderedLegend.hidden = true;
+  }
+  blockLegend.hidden = (algoSelect.value !== 'merge');
+  groupLegend.hidden = (algoSelect.value !== 'merge');
   steps = null;
   runBtn.textContent = '실행';
   resetCounts();
@@ -326,6 +490,8 @@ function prepareSteps() {
     steps = selectionSort(numbers);
   } else if (algoSelect.value === 'insertion') {
     steps = insertionSort(numbers);
+  } else if (algoSelect.value === 'merge') {
+    steps = mergeSort(numbers);
   }
 }
 
