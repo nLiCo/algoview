@@ -37,19 +37,19 @@ let swapCount = 0;      // 이번 정렬에서 교환한 횟수
 
 // ----- 버블 정렬 -----
 // 이웃한 두 값을 비교해 앞이 더 크면 바꾼다. 한 바퀴 돌 때마다 가장 큰 값이 맨 뒤로 간다.
-// yield하는 상태:
-//   array      : 그 순간의 배열 (복사본)
-//   compare    : 비교 중인 두 칸의 번호
-//   swap       : 방금 바꾼 두 칸의 번호
-//   sortedStart, sortedEnd : sortedStart 이상 sortedEnd 미만 번호는 자리가 확정됨
-//                            (버블은 뒤쪽부터, 선택은 앞쪽부터 확정되므로 범위로 표시)
-//   orderedEnd : 0 이상 orderedEnd 미만 번호는 순서만 맞고 아직 확정은 아님
-//                (삽입 정렬에서만 쓴다. 없으면 표시하지 않는다)
-//   message    : 화면에 보여 줄 설명
-//   done       : 정렬이 끝났으면 true
+// yield하는 상태 (모든 정렬이 같은 모양을 쓴다):
+//   array   : 그 순간의 배열 (복사본)
+//   compare : 비교 중인 칸 번호 목록
+//   swap    : 방금 바꾼 칸 번호 목록
+//   sorted  : 칸마다 true/false. true인 칸은 자리가 확정됨 (없으면 표시하지 않는다)
+//   ordered : 칸마다 true/false. true인 칸은 순서만 맞고 아직 확정은 아님 (삽입·병합 정렬만)
+//   message : 화면에 보여 줄 설명
+//   done    : 정렬이 끝났으면 true
+// 정렬마다 따로 쓰는 상태(pivot, blockStart 등)는 그 정렬의 설명에 적어 두었다.
 function* bubbleSort(original) {
   const arr = original.slice();   // 원본을 건드리지 않도록 복사해서 정렬
   const n = arr.length;
+  const sorted = new Array(n).fill(false);   // 처음에는 확정된 칸이 없다
 
   for (let i = 0; i < n - 1; i++) {
     // i바퀴가 끝나면 뒤에서 i개는 자리가 확정되어 있으므로 비교하지 않는다
@@ -57,8 +57,7 @@ function* bubbleSort(original) {
       yield {
         array: arr.slice(),
         compare: [j, j + 1],
-        sortedStart: n - i,
-        sortedEnd: n,
+        sorted: sorted.slice(),
         message: arr[j] + ' 와(과) ' + arr[j + 1] + ' 비교',
       };
 
@@ -70,18 +69,19 @@ function* bubbleSort(original) {
         yield {
           array: arr.slice(),
           swap: [j, j + 1],
-          sortedStart: n - i,
-          sortedEnd: n,
+          sorted: sorted.slice(),
           message: arr[j + 1] + ' 이(가) 더 커서 자리 교환',
         };
       }
     }
+
+    // 이번 바퀴에서 가장 큰 값이 맨 뒤(n-1-i번)로 왔으므로 그 칸은 자리 확정
+    sorted[n - 1 - i] = true;
   }
 
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: n,
+    sorted: new Array(n).fill(true),
     message: '정렬 완료!',
     done: true,
   };
@@ -95,6 +95,7 @@ function* bubbleSort(original) {
 function* selectionSort(original) {
   const arr = original.slice();
   const n = arr.length;
+  const sorted = new Array(n).fill(false);
 
   for (let i = 0; i < n - 1; i++) {
     let minIndex = i;   // 우선 i번을 최솟값으로 놓고 시작
@@ -103,8 +104,7 @@ function* selectionSort(original) {
       yield {
         array: arr.slice(),
         compare: [minIndex, j],
-        sortedStart: 0,
-        sortedEnd: i,
+        sorted: sorted.slice(),
         message: '현재 최솟값 ' + arr[minIndex] + ' 와(과) ' + arr[j] + ' 비교',
       };
 
@@ -122,17 +122,18 @@ function* selectionSort(original) {
       yield {
         array: arr.slice(),
         swap: [i, minIndex],
-        sortedStart: 0,
-        sortedEnd: i,
+        sorted: sorted.slice(),
         message: '최솟값 ' + arr[i] + ' 을(를) ' + (i + 1) + '번째 자리로 이동',
       };
     }
+
+    // 최솟값이 i번에 들어왔으므로 그 칸은 자리 확정
+    sorted[i] = true;
   }
 
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: n,
+    sorted: new Array(n).fill(true),
     message: '정렬 완료!',
     done: true,
   };
@@ -142,22 +143,23 @@ function* selectionSort(original) {
 // ----- 삽입 정렬 -----
 // i번 값을 앞쪽(0 ~ i-1)의 정렬된 부분에 끼워 넣는다.
 // 앞의 값이 더 크면 한 칸씩 자리를 바꾸며 앞으로 옮기고, 앞의 값이 더 작아지면 멈춘다.
-// 앞쪽은 순서만 맞을 뿐 나중에 값이 끼어들 수 있으므로, 확정(초록) 대신 orderedEnd(연한 초록)로 표시한다.
+// 앞쪽은 순서만 맞을 뿐 나중에 값이 끼어들 수 있으므로, 확정(sorted, 초록) 대신 ordered(연한 초록)로 표시한다.
 // 옮기고 있는 값은 항상 비교·교환 색으로 칠해지므로, 0 ~ i번 전체를 정렬된 앞부분으로 칠해도 된다.
 function* insertionSort(original) {
   const arr = original.slice();
   const n = arr.length;
+  const ordered = new Array(n).fill(false);
+  ordered[0] = true;   // 한 칸짜리 앞부분은 처음부터 순서가 맞다
 
   for (let i = 1; i < n; i++) {
-    let j = i;   // 지금 옮기고 있는 값의 위치
+    ordered[i] = true;   // 이번 바퀴부터 0 ~ i번이 정렬된 앞부분이다
+    let j = i;           // 지금 옮기고 있는 값의 위치
 
     while (j > 0) {
       yield {
         array: arr.slice(),
         compare: [j - 1, j],
-        sortedStart: 0,
-        sortedEnd: 0,
-        orderedEnd: i + 1,
+        ordered: ordered.slice(),
         message: arr[j - 1] + ' 와(과) ' + arr[j] + ' 비교',
       };
 
@@ -169,9 +171,7 @@ function* insertionSort(original) {
         yield {
           array: arr.slice(),
           swap: [j - 1, j],
-          sortedStart: 0,
-          sortedEnd: 0,
-          orderedEnd: i + 1,
+          ordered: ordered.slice(),
           message: arr[j - 1] + ' 을(를) 앞으로 한 칸 이동',
         };
 
@@ -184,8 +184,7 @@ function* insertionSort(original) {
 
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: n,
+    sorted: new Array(n).fill(true),
     message: '정렬 완료!',
     done: true,
   };
@@ -208,20 +207,15 @@ function* insertionSort(original) {
 function* mergeSort(original) {
   const arr = original.slice();
   const n = arr.length;
-  const ordered = [];
-  const blockStart = [];
-  for (let i = 0; i < n; i++) {
-    ordered.push(false);
-    blockStart.push(true);
-  }
+  const ordered = new Array(n).fill(false);
+  const blockStart = new Array(n).fill(true);   // 처음에는 한 칸짜리 묶음 n개
 
   // 제너레이터 안에서 다른 제너레이터의 단계를 이어서 내보낼 때는 yield*를 쓴다
   yield* mergeSortRange(arr, 0, n - 1, ordered, blockStart);
 
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: n,
+    sorted: new Array(n).fill(true),
     message: '정렬 완료!',
     done: true,
   };
@@ -259,8 +253,6 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
     yield {
       array: arr.slice(),
       compare: [k, j],
-      sortedStart: 0,
-      sortedEnd: 0,
       ordered: ordered.slice(),
       blockStart: blockStart.slice(),
       leftGroup: [k, leftEnd],
@@ -283,8 +275,6 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
       yield {
         array: arr.slice(),
         swap: [k],
-        sortedStart: 0,
-        sortedEnd: 0,
         ordered: ordered.slice(),
         blockStart: blockStart.slice(),
         leftGroup: [k + 1, leftEnd],
@@ -297,8 +287,6 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
 
       yield {
         array: arr.slice(),
-        sortedStart: 0,
-        sortedEnd: 0,
         ordered: ordered.slice(),
         blockStart: blockStart.slice(),
         leftGroup: [k + 1, leftEnd],
@@ -317,8 +305,6 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
 
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: 0,
     ordered: ordered.slice(),
     blockStart: blockStart.slice(),
     message: '남은 값은 이미 제자리에 있으므로 그대로 둔다 (' + (left + 1) + '~' + (right + 1) + '번째 합치기 끝)',
@@ -329,27 +315,22 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
 // ----- 퀵 정렬 -----
 // 구간의 맨 끝 값을 피벗(기준값)으로 정하고, 피벗보다 작은 값은 앞으로, 큰 값은 뒤로 모은다(분할).
 // 그 사이에 피벗을 넣으면 피벗은 자리가 확정되고, 피벗 앞뒤 구간을 같은 방법으로 다시 정렬한다.
-// 자리가 확정되는 칸이 여기저기 흩어져 생기므로 범위(sortedStart/sortedEnd) 대신 목록으로 표시한다.
+// 자리가 확정되는 칸이 여기저기 흩어져 생긴다 (sorted 목록이라 그대로 표시할 수 있다).
 // 추가로 yield하는 상태:
 //   pivot  : 피벗이 있는 칸 번호
-//   sorted : 칸마다 true/false. true인 칸은 자리 확정
 //   blockStart : 병합 정렬과 같은 뜻. 자리 확정 칸으로 나뉜 "아직 정렬 안 된 구간"이 묶음이다
 //   leftGroup, rightGroup : [시작, 끝] (끝 번호 포함). 분할 중인 구간에서 피벗보다 작은 값·큰 값의 범위
 // 비교 중 표시(compare)는 피벗과 비교하는 칸 하나만 담는다 (피벗은 피벗 색으로 따로 보인다)
 function* quickSort(original) {
   const arr = original.slice();
   const n = arr.length;
-  const sorted = [];
-  for (let i = 0; i < n; i++) {
-    sorted.push(false);
-  }
+  const sorted = new Array(n).fill(false);
 
   yield* quickSortRange(arr, 0, n - 1, sorted);
 
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: n,
+    sorted: new Array(n).fill(true),
     message: '정렬 완료!',
     done: true,
   };
@@ -381,8 +362,6 @@ function* quickSortRange(arr, low, high, sorted) {
     sorted[low] = true;
     yield {
       array: arr.slice(),
-      sortedStart: 0,
-      sortedEnd: 0,
       sorted: sorted.slice(),
       blockStart: makeQuickBlockStart(sorted),
       message: '한 칸짜리 구간의 ' + arr[low] + ' 은(는) 자리 확정',
@@ -407,8 +386,6 @@ function* partition(arr, low, high, sorted) {
       array: arr.slice(),
       compare: [j],
       pivot: high,
-      sortedStart: 0,
-      sortedEnd: 0,
       sorted: sorted.slice(),
       blockStart: makeQuickBlockStart(sorted),
       leftGroup: [low, i - 1],
@@ -427,8 +404,6 @@ function* partition(arr, low, high, sorted) {
           array: arr.slice(),
           swap: [i, j],
           pivot: high,
-          sortedStart: 0,
-          sortedEnd: 0,
           sorted: sorted.slice(),
           blockStart: makeQuickBlockStart(sorted),
           leftGroup: [low, i],
@@ -449,8 +424,6 @@ function* partition(arr, low, high, sorted) {
     yield {
       array: arr.slice(),
       swap: [i, high],
-      sortedStart: 0,
-      sortedEnd: 0,
       sorted: sorted.slice(),
       blockStart: makeQuickBlockStart(sorted),
       leftGroup: [low, i - 1],
@@ -463,8 +436,6 @@ function* partition(arr, low, high, sorted) {
   sorted[i] = true;
   yield {
     array: arr.slice(),
-    sortedStart: 0,
-    sortedEnd: 0,
     sorted: sorted.slice(),
     blockStart: makeQuickBlockStart(sorted),
     leftGroup: [low, i - 1],
@@ -510,14 +481,8 @@ function renderBars(state) {
     bar.style.height = (value / state.array.length * 100) + '%';
     bar.title = value;   // 마우스를 올리면 값이 보인다
 
-    if (state.orderedEnd !== undefined && i < state.orderedEnd) {
-      bar.classList.add('ordered');
-    }
     if (state.ordered && state.ordered[i]) {
       bar.classList.add('ordered');
-    }
-    if (i >= state.sortedStart && i < state.sortedEnd) {
-      bar.classList.add('sorted');
     }
     if (state.sorted && state.sorted[i]) {
       bar.classList.add('sorted');
@@ -587,7 +552,7 @@ function resetArray() {
   steps = null;   // 새 배열이므로 진행 중이던 정렬은 버린다
   runBtn.textContent = '실행';
   resetCounts();
-  renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
+  renderBars({ array: numbers });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
@@ -608,7 +573,7 @@ function changeAlgorithm() {
   steps = null;
   runBtn.textContent = '실행';
   resetCounts();
-  renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
+  renderBars({ array: numbers });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
