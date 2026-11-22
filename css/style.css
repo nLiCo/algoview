@@ -13,9 +13,10 @@
   --color-bar: #9bb5ea;       /* 대기 */
   --color-compare: #f2b632;   /* 비교 중 */
   --color-swap: #e05252;      /* 교환 */
-  --color-group: #eceef2;        /* 막대 뒤 배경: 묶음 (병합 정렬) */
-  --color-group-left: #e3ecfb;   /* 막대 뒤 배경: 합치는 왼쪽 묶음 (병합 정렬) */
-  --color-group-right: #fdecd8;  /* 막대 뒤 배경: 합치는 오른쪽 묶음 (병합 정렬) */
+  --color-pivot: #9b6ad8;     /* 피벗 (퀵 정렬) */
+  --color-group: #eceef2;        /* 막대 뒤 배경: 묶음 (병합·퀵 정렬) */
+  --color-group-left: #e3ecfb;   /* 막대 뒤 배경: 합치는 왼쪽 묶음 / 피벗보다 작은 값 */
+  --color-group-right: #fdecd8;  /* 막대 뒤 배경: 합치는 오른쪽 묶음 / 피벗보다 큰 값 */
   --color-sorted: #4caf7a;    /* 정렬 완료 */
   --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 확정 아님 (삽입 정렬 앞부분) */
 }
@@ -188,7 +189,7 @@ select {
   padding: 0 1px;
 }
 
-/* 묶음 배경. 합치는 두 묶음의 색이 이 색보다 우선하도록 앞쪽에 둔다 */
+/* 묶음 배경. 파랑·주황 묶음 색이 이 색보다 우선하도록 앞쪽에 둔다 */
 .slot.group {
   background: var(--color-group);
 }
@@ -220,6 +221,10 @@ select {
 
 .bar.sorted {
   background: var(--color-sorted);
+}
+
+.bar.pivot {
+  background: var(--color-pivot);
 }
 
 .bar.compare {
@@ -263,6 +268,10 @@ select {
 
 .swatch.swap {
   background: var(--color-swap);
+}
+
+.swatch.pivot {
+  background: var(--color-pivot);
 }
 
 /* 묶음 색은 연해서 테두리를 둘러 보이게 한다 */

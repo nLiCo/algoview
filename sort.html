@@ -29,6 +29,7 @@
           <option value="selection">선택 정렬</option>
           <option value="insertion">삽입 정렬</option>
           <option value="merge">병합 정렬</option>
+          <option value="quick">퀵 정렬</option>
         </select>
       </label>
       <label>
@@ -58,6 +59,10 @@
         <li><span class="swatch"></span>대기</li>
         <li><span class="swatch compare"></span>비교 중</li>
         <li><span class="swatch swap"></span>교환</li>
+        <!-- 퀵 정렬을 골랐을 때만 sort.js가 보이게 한다 -->
+        <li id="pivot-legend" hidden><span class="swatch pivot"></span>피벗 (기준값)</li>
+        <li id="quick-block-legend" hidden><span class="swatch group"></span>묶음 (아직 정렬 안 된 구간)</li>
+        <li id="quick-group-legend" hidden><span class="swatch group-left"></span><span class="swatch group-right"></span>피벗보다 작은 값 · 큰 값</li>
         <!-- 병합 정렬을 골랐을 때만 sort.js가 보이게 한다 -->
         <li id="block-legend" hidden><span class="swatch group"></span>묶음 (정렬된 작은 배열)</li>
         <li id="group-legend" hidden><span class="swatch group-left"></span><span class="swatch group-right"></span>합치는 두 묶음 (왼쪽·오른쪽)</li>

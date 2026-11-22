@@ -11,6 +11,9 @@ const SPEED_DELAYS = [1000, 500, 300, 150, 50];
 const algoSelect = document.getElementById('algo-select');
 const algoTitle = document.getElementById('algo-title');
 const orderedLegend = document.getElementById('ordered-legend');
+const pivotLegend = document.getElementById('pivot-legend');
+const quickBlockLegend = document.getElementById('quick-block-legend');
+const quickGroupLegend = document.getElementById('quick-group-legend');
 const blockLegend = document.getElementById('block-legend');
 const groupLegend = document.getElementById('group-legend');
 const sizeInput = document.getElementById('size-input');
@@ -323,10 +326,160 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
 }
 
 
+// ----- 퀵 정렬 -----
+// 구간의 맨 끝 값을 피벗(기준값)으로 정하고, 피벗보다 작은 값은 앞으로, 큰 값은 뒤로 모은다(분할).
+// 그 사이에 피벗을 넣으면 피벗은 자리가 확정되고, 피벗 앞뒤 구간을 같은 방법으로 다시 정렬한다.
+// 자리가 확정되는 칸이 여기저기 흩어져 생기므로 범위(sortedStart/sortedEnd) 대신 목록으로 표시한다.
+// 추가로 yield하는 상태:
+//   pivot  : 피벗이 있는 칸 번호
+//   sorted : 칸마다 true/false. true인 칸은 자리 확정
+//   blockStart : 병합 정렬과 같은 뜻. 자리 확정 칸으로 나뉜 "아직 정렬 안 된 구간"이 묶음이다
+//   leftGroup, rightGroup : [시작, 끝] (끝 번호 포함). 분할 중인 구간에서 피벗보다 작은 값·큰 값의 범위
+// 비교 중 표시(compare)는 피벗과 비교하는 칸 하나만 담는다 (피벗은 피벗 색으로 따로 보인다)
+function* quickSort(original) {
+  const arr = original.slice();
+  const n = arr.length;
+  const sorted = [];
+  for (let i = 0; i < n; i++) {
+    sorted.push(false);
+  }
+
+  yield* quickSortRange(arr, 0, n - 1, sorted);
+
+  yield {
+    array: arr.slice(),
+    sortedStart: 0,
+    sortedEnd: n,
+    message: '정렬 완료!',
+    done: true,
+  };
+}
+
+// 자리 확정 칸 바로 뒤에서 새 묶음이 시작한다 (확정 칸 자체는 묶음에 넣지 않는다)
+function makeQuickBlockStart(sorted) {
+  const blockStart = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i]) {
+      blockStart.push(false);
+    } else if (i === 0 || sorted[i - 1]) {
+      blockStart.push(true);
+    } else {
+      blockStart.push(false);
+    }
+  }
+  return blockStart;
+}
+
+// low번 ~ high번 구간을 정렬한다 (자기 자신을 다시 부르는 재귀)
+function* quickSortRange(arr, low, high, sorted) {
+  if (low > high) {
+    return;   // 빈 구간
+  }
+
+  if (low === high) {
+    // 한 칸짜리 구간은 그 자리가 곧 최종 자리다
+    sorted[low] = true;
+    yield {
+      array: arr.slice(),
+      sortedStart: 0,
+      sortedEnd: 0,
+      sorted: sorted.slice(),
+      blockStart: makeQuickBlockStart(sorted),
+      message: '한 칸짜리 구간의 ' + arr[low] + ' 은(는) 자리 확정',
+    };
+    return;
+  }
+
+  // partition이 return한 피벗의 최종 위치를 yield*가 돌려준다
+  const p = yield* partition(arr, low, high, sorted);
+  yield* quickSortRange(arr, low, p - 1, sorted);
+  yield* quickSortRange(arr, p + 1, high, sorted);
+}
+
+// low번 ~ high번 구간을 high번 값(피벗) 기준으로 나누고, 피벗이 들어간 칸 번호를 돌려준다
+function* partition(arr, low, high, sorted) {
+  const pivotValue = arr[high];
+  let i = low;   // 피벗보다 작은 값을 다음에 넣을 칸
+  // 분할하는 동안 low ~ i-1번은 피벗보다 작은 값, i ~ j-1번은 피벗보다 큰 값, j ~ high-1번은 아직 안 본 값이다
+
+  for (let j = low; j < high; j++) {
+    yield {
+      array: arr.slice(),
+      compare: [j],
+      pivot: high,
+      sortedStart: 0,
+      sortedEnd: 0,
+      sorted: sorted.slice(),
+      blockStart: makeQuickBlockStart(sorted),
+      leftGroup: [low, i - 1],
+      rightGroup: [i, j - 1],
+      message: arr[j] + ' 와(과) 피벗 ' + pivotValue + ' 비교',
+    };
+
+    if (arr[j] < pivotValue) {
+      // 피벗보다 작은 값은 앞쪽(i번)으로 보낸다. 이미 i번에 있으면 바꿀 필요가 없다
+      if (i !== j) {
+        const temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+
+        yield {
+          array: arr.slice(),
+          swap: [i, j],
+          pivot: high,
+          sortedStart: 0,
+          sortedEnd: 0,
+          sorted: sorted.slice(),
+          blockStart: makeQuickBlockStart(sorted),
+          leftGroup: [low, i],
+          rightGroup: [i + 1, j],
+          message: arr[i] + ' 이(가) 피벗보다 작아서 앞쪽으로 교환',
+        };
+      }
+      i++;
+    }
+  }
+
+  // 작은 값들 바로 뒤(i번)에 피벗을 넣는다
+  if (i !== high) {
+    const temp = arr[i];
+    arr[i] = arr[high];
+    arr[high] = temp;
+
+    yield {
+      array: arr.slice(),
+      swap: [i, high],
+      sortedStart: 0,
+      sortedEnd: 0,
+      sorted: sorted.slice(),
+      blockStart: makeQuickBlockStart(sorted),
+      leftGroup: [low, i - 1],
+      rightGroup: [i + 1, high],
+      message: '피벗 ' + pivotValue + ' 을(를) 작은 값들 바로 뒤(' + (i + 1) + '번째)로 교환',
+    };
+  }
+
+  // 피벗 앞은 모두 작고 뒤는 모두 크므로 피벗의 자리는 확정이다
+  sorted[i] = true;
+  yield {
+    array: arr.slice(),
+    sortedStart: 0,
+    sortedEnd: 0,
+    sorted: sorted.slice(),
+    blockStart: makeQuickBlockStart(sorted),
+    leftGroup: [low, i - 1],
+    rightGroup: [i + 1, high],
+    message: '피벗 ' + pivotValue + ' 은(는) 자리 확정. 앞뒤 구간을 따로 정렬한다',
+  };
+
+  return i;
+}
+
+
 // ----- 막대 그리기 -----
 // state는 정렬 함수가 yield한 상태와 같은 모양이다
 // 막대마다 칸(slot)을 하나씩 만들고 그 안에 막대를 넣는다. 칸의 배경색으로 병합 정렬의 묶음을 보여 준다
-// (묶음은 회색, 그중 합치고 있는 두 묶음은 파랑·주황)
+// (묶음은 회색, 병합 정렬에서 합치는 두 묶음 / 퀵 정렬에서 피벗보다 작은·큰 값은 파랑·주황)
 function renderBars(state) {
   barsBox.innerHTML = '';   // 기존 막대를 모두 지우고 새로 그린다
 
@@ -335,9 +488,13 @@ function renderBars(state) {
 
     const slot = document.createElement('div');
     slot.className = 'slot';
-    if (state.blockStart) {
+    // 자리 확정 칸(퀵 정렬의 피벗)은 묶음에 넣지 않는다
+    const confirmed = state.sorted && state.sorted[i];
+    const prevConfirmed = state.sorted && state.sorted[i - 1];
+    if (state.blockStart && !confirmed) {
       slot.classList.add('group');
-      if (i > 0 && state.blockStart[i]) {
+      // 바로 앞 칸도 묶음일 때만 틈을 둔다 (앞 칸이 확정 칸이면 이미 떨어져 보인다)
+      if (i > 0 && state.blockStart[i] && !prevConfirmed) {
         slot.classList.add('group-start');
       }
     }
@@ -361,6 +518,12 @@ function renderBars(state) {
     }
     if (i >= state.sortedStart && i < state.sortedEnd) {
       bar.classList.add('sorted');
+    }
+    if (state.sorted && state.sorted[i]) {
+      bar.classList.add('sorted');
+    }
+    if (state.pivot === i) {
+      bar.classList.add('pivot');
     }
     if (state.compare && state.compare.includes(i)) {
       bar.classList.add('compare');
@@ -431,12 +594,15 @@ function resetArray() {
 // 알고리즘을 바꾸면 진행 중이던 단계는 버리고 지금 배열을 색 없이 다시 보여 준다
 function changeAlgorithm() {
   algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
-  // "순서만 맞음" 색은 삽입·병합 정렬에서만, 묶음 색은 병합 정렬에서만 쓰므로 그때만 범례에 보인다
+  // "순서만 맞음" 색은 삽입·병합 정렬에서만, 피벗 색은 퀵 정렬에서만, 묶음 색은 병합 정렬에서만 쓰므로 그때만 범례에 보인다
   if (algoSelect.value === 'insertion' || algoSelect.value === 'merge') {
     orderedLegend.hidden = false;
   } else {
     orderedLegend.hidden = true;
   }
+  pivotLegend.hidden = (algoSelect.value !== 'quick');
+  quickBlockLegend.hidden = (algoSelect.value !== 'quick');
+  quickGroupLegend.hidden = (algoSelect.value !== 'quick');
   blockLegend.hidden = (algoSelect.value !== 'merge');
   groupLegend.hidden = (algoSelect.value !== 'merge');
   steps = null;
@@ -492,6 +658,8 @@ function prepareSteps() {
     steps = insertionSort(numbers);
   } else if (algoSelect.value === 'merge') {
     steps = mergeSort(numbers);
+  } else if (algoSelect.value === 'quick') {
+    steps = quickSort(numbers);
   }
 }
 
