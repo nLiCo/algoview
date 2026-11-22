@@ -19,11 +19,15 @@ const stepBtn = document.getElementById('step-btn');
 const speedInput = document.getElementById('speed-input');
 const barsBox = document.getElementById('bars');
 const message = document.getElementById('message');
+const compareCountText = document.getElementById('compare-count');
+const swapCountText = document.getElementById('swap-count');
 
 // 현재 상태
 let numbers = [];    // 화면에 보이는 배열
 let steps = null;    // 정렬 제너레이터 (정렬 중이 아니면 null)
 let timer = null;    // 자동 실행 타이머 (자동 실행 중이 아니면 null)
+let compareCount = 0;   // 이번 정렬에서 비교한 횟수
+let swapCount = 0;      // 이번 정렬에서 교환한 횟수
 
 
 // ----- 버블 정렬 -----
@@ -213,6 +217,20 @@ function renderBars(state) {
 }
 
 
+// ----- 비교·교환 횟수 -----
+function showCounts() {
+  compareCountText.textContent = compareCount;
+  swapCountText.textContent = swapCount;
+}
+
+// 새 정렬을 시작하거나 진행을 버릴 때 0으로 되돌린다
+function resetCounts() {
+  compareCount = 0;
+  swapCount = 0;
+  showCounts();
+}
+
+
 // ----- 배열 만들기 -----
 // 입력값이 범위를 벗어나면 5~50 안으로 맞춰 준다
 function readSize() {
@@ -247,6 +265,7 @@ function resetArray() {
   numbers = makeRandomArray(size);
   steps = null;   // 새 배열이므로 진행 중이던 정렬은 버린다
   runBtn.textContent = '실행';
+  resetCounts();
   renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
@@ -258,6 +277,7 @@ function changeAlgorithm() {
   orderedLegend.hidden = (algoSelect.value !== 'insertion');
   steps = null;
   runBtn.textContent = '실행';
+  resetCounts();
   renderBars({ array: numbers, sortedStart: 0, sortedEnd: 0 });
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
@@ -297,6 +317,9 @@ function prepareSteps() {
     return;
   }
 
+  // 새 정렬을 시작하므로 횟수를 0부터 센다 (끝난 뒤 다시 실행할 때도 여기로 온다)
+  resetCounts();
+
   if (algoSelect.value === 'bubble') {
     steps = bubbleSort(numbers);
   } else if (algoSelect.value === 'selection') {
@@ -310,6 +333,15 @@ function prepareSteps() {
 function doStep() {
   const result = steps.next();
   const state = result.value;
+
+  // 비교 중 상태가 나오면 비교 1회, 교환 상태가 나오면 교환 1회로 센다
+  if (state.compare) {
+    compareCount++;
+  }
+  if (state.swap) {
+    swapCount++;
+  }
+  showCounts();
 
   renderBars(state);
   message.textContent = state.message;
