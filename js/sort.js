@@ -125,22 +125,38 @@ function* selectionSort(original) {
     let minIndex = i;   // 우선 i번을 최솟값으로 놓고 시작
 
     for (let j = i + 1; j < n; j++) {
+      // 바퀴의 첫 비교는 바깥 반복(1번 줄)과 minIndex 준비(2번 줄)부터 지나오고, 그다음부터는 안쪽 반복(3번 줄)만 지나온다
+      let lines = [3, 4];
+      if (j === i + 1) {
+        lines = [1, 2, 3, 4];
+      }
+
       yield {
         array: arr.slice(),
         compare: [minIndex, j],
         sorted: sorted.slice(),
-        lines: [4],
+        lines: lines,
         vars: { n: n, i: i, j: j, minIndex: minIndex },
         message: '현재 최솟값 ' + arr[minIndex] + ' 와(과) ' + arr[j] + ' 비교',
       };
 
       if (arr[j] < arr[minIndex]) {
+        // 막대는 움직이지 않지만 minIndex가 바뀌므로 단계를 하나 보여 준다 (5번 줄)
         minIndex = j;
+
+        yield {
+          array: arr.slice(),
+          sorted: sorted.slice(),
+          lines: [5],
+          vars: { n: n, i: i, j: j, minIndex: minIndex },
+          message: arr[minIndex] + ' 이(가) 더 작아서 새 최솟값이 된다',
+        };
       }
     }
 
     // 최솟값이 이미 i번에 있으면 바꿀 필요가 없다
-    if (minIndex !== i) {
+    const swapped = (minIndex !== i);
+    if (swapped) {
       const temp = arr[i];
       arr[i] = arr[minIndex];
       arr[minIndex] = temp;
@@ -149,18 +165,24 @@ function* selectionSort(original) {
         array: arr.slice(),
         swap: [i, minIndex],
         sorted: sorted.slice(),
-        lines: [7],
+        lines: [6, 7],
         vars: { n: n, i: i, minIndex: minIndex },
         message: '최솟값 ' + arr[i] + ' 을(를) ' + (i + 1) + '번째 자리로 이동',
       };
     }
 
     // 최솟값이 i번에 들어왔으므로 그 칸은 자리 확정
+    // 교환하지 않았으면 6번 줄(조건 확인)도 이 단계에서 지나온 것으로 칠한다
+    let confirmLines = [8];
+    if (!swapped) {
+      confirmLines = [6, 8];
+    }
+
     sorted[i] = true;
     yield {
       array: arr.slice(),
       sorted: sorted.slice(),
-      lines: [8],
+      lines: confirmLines,
       vars: { n: n, i: i },
       message: arr[i] + ' 은(는) ' + (i + 1) + '번째 자리 확정',
     };
@@ -192,32 +214,47 @@ function* insertionSort(original) {
     let j = i;           // 지금 옮기고 있는 값의 위치
 
     while (j > 0) {
+      // 바퀴의 첫 비교는 바깥 반복(1번 줄)과 j 준비(2번 줄)부터 지나오고, 그다음부터는 while(3번 줄)만 지나온다
+      let lines = [3, 4];
+      if (j === i) {
+        lines = [1, 2, 3, 4];
+      }
+
       yield {
         array: arr.slice(),
         compare: [j - 1, j],
         ordered: ordered.slice(),
-        lines: [4],
+        lines: lines,
         vars: { n: n, i: i, j: j },
         message: arr[j - 1] + ' 와(과) ' + arr[j] + ' 비교',
       };
 
       if (arr[j - 1] > arr[j]) {
+        // 앞의 값과 바꾸고 j를 1 줄인다 (5·6번 줄)
+        // 보여 주는 j는 줄인 뒤의 값이므로, 방금 바꾼 두 칸은 j번과 j+1번이다
         const temp = arr[j - 1];
         arr[j - 1] = arr[j];
         arr[j] = temp;
+        j--;
 
         yield {
           array: arr.slice(),
-          swap: [j - 1, j],
+          swap: [j, j + 1],
           ordered: ordered.slice(),
-          lines: [5],
+          lines: [5, 6],
           vars: { n: n, i: i, j: j },
-          message: arr[j - 1] + ' 을(를) 앞으로 한 칸 이동',
+          message: arr[j] + ' 을(를) 앞으로 한 칸 이동하고, j를 1 줄인다',
         };
-
-        j--;
       } else {
-        break;   // 앞의 값이 더 작으면 제자리를 찾은 것
+        // 앞의 값이 더 작으면 제자리를 찾은 것 (7번 줄)
+        yield {
+          array: arr.slice(),
+          ordered: ordered.slice(),
+          lines: [7],
+          vars: { n: n, i: i, j: j },
+          message: arr[j] + ' 은(는) 제자리를 찾았으므로 반복을 멈춘다',
+        };
+        break;
       }
     }
   }
@@ -292,6 +329,12 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
 
   // 두 묶음 모두 값이 남아 있는 동안, 두 묶음의 맨 앞 값끼리 비교한다
   while (k <= leftEnd && j <= right) {
+    // 합치기의 첫 비교는 합치기 호출(6번 줄)과 준비(8번 줄)부터 지나오고, 그다음부터는 반복(9번 줄)만 지나온다
+    let lines = [9, 10];
+    if (k === left) {
+      lines = [6, 8, 9, 10];
+    }
+
     yield {
       array: arr.slice(),
       compare: [k, j],
@@ -299,7 +342,7 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
       blockStart: blockStart.slice(),
       leftGroup: [k, leftEnd],
       rightGroup: [j, right],
-      lines: [10],
+      lines: lines,
       vars: { left: left, mid: mid, right: right, k: k, j: j },
       message: '왼쪽 ' + arr[k] + ' 와(과) 오른쪽 ' + arr[j] + ' 비교',
     };
@@ -314,36 +357,36 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
       leftEnd++;
       j++;
       ordered[k] = true;
+      k++;   // 13번 줄. 보여 주는 k는 늘린 뒤의 값이므로, 방금 값이 들어간 칸은 k-1번이다
 
       // 값이 실제로 움직였으므로 교환 1회 (swap에는 값이 들어간 칸 하나만 담는다)
       yield {
         array: arr.slice(),
-        swap: [k],
+        swap: [k - 1],
         ordered: ordered.slice(),
         blockStart: blockStart.slice(),
-        leftGroup: [k + 1, leftEnd],
+        leftGroup: [k, leftEnd],
         rightGroup: [j, right],
-        lines: [11],
+        lines: [11, 13],
         vars: { left: left, mid: mid, right: right, k: k, j: j },
-        message: '오른쪽 ' + value + ' 이(가) 더 작아서 ' + (k + 1) + '번째 자리로 가져오고, 왼쪽 값들을 한 칸씩 뒤로 민다',
+        message: '오른쪽 ' + value + ' 이(가) 더 작아서 ' + k + '번째 자리로 가져오고, 왼쪽 값들을 한 칸씩 뒤로 민다',
       };
     } else {
       // 왼쪽 값이 이미 제자리이므로 움직이지 않는다 (교환 아님)
       ordered[k] = true;
+      k++;   // 13번 줄. 방금 그대로 둔 칸은 k-1번이다
 
       yield {
         array: arr.slice(),
         ordered: ordered.slice(),
         blockStart: blockStart.slice(),
-        leftGroup: [k + 1, leftEnd],
+        leftGroup: [k, leftEnd],
         rightGroup: [j, right],
-        lines: [12],
+        lines: [12, 13],
         vars: { left: left, mid: mid, right: right, k: k, j: j },
-        message: '왼쪽 ' + arr[k] + ' 이(가) 더 작아서 그대로 둔다',
+        message: '왼쪽 ' + arr[k - 1] + ' 이(가) 더 작아서 그대로 둔다',
       };
     }
-
-    k++;
   }
 
   // 한쪽 묶음을 다 쓰면, 다른 쪽에 남은 값은 이미 순서대로 제자리에 있다

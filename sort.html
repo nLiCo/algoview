@@ -68,40 +68,40 @@
               <li><code>정렬 완료</code></li>
             </ol>
             <ol class="code" data-algo="selection" hidden>
-              <li><code>for i = 0 to n-2</code></li>
+              <li><code>i: 0 ~ n-2 반복</code></li>
               <li><code>  minIndex = i</code></li>
-              <li><code>  for j = i+1 to n-1</code></li>
-              <li><code>    if a[j] &lt; a[minIndex]</code></li>
+              <li><code>  j: i+1 ~ n-1 반복</code></li>
+              <li><code>    a[j] &lt; a[minIndex]이면</code></li>
               <li><code>      minIndex = j</code></li>
-              <li><code>  if minIndex ≠ i</code></li>
+              <li><code>  minIndex ≠ i이면</code></li>
               <li><code>    a[i]와 a[minIndex] 교환</code></li>
               <li><code>  a[i] 자리 확정</code></li>
               <li><code>정렬 완료</code></li>
             </ol>
             <ol class="code" data-algo="insertion" hidden>
-              <li><code>for i = 1 to n-1</code></li>
+              <li><code>i: 1 ~ n-1 반복</code></li>
               <li><code>  j = i</code></li>
-              <li><code>  while j &gt; 0</code></li>
-              <li><code>    if a[j-1] &gt; a[j]</code></li>
-              <li><code>      a[j-1]와 a[j] 교환</code></li>
-              <li><code>      j = j - 1</code></li>
-              <li><code>    else 반복 멈춤</code></li>
+              <li><code>  j &gt; 0인 동안 반복</code></li>
+              <li><code>    a[j-1] &gt; a[j]이면</code></li>
+              <li><code>      두 값을 교환</code></li>
+              <li><code>      j를 1 줄임</code></li>
+              <li><code>    아니면 반복 멈춤</code></li>
               <li><code>정렬 완료</code></li>
             </ol>
             <ol class="code" data-algo="merge" hidden>
-              <li><code>mergeSort(left, right)</code></li>
-              <li><code>  if left ≥ right: 끝</code></li>
+              <li><code>병합정렬(left, right):</code></li>
+              <li><code>  left ≥ right이면 끝</code></li>
               <li><code>  mid = (left+right) / 2</code></li>
-              <li><code>  mergeSort(left, mid)</code></li>
-              <li><code>  mergeSort(mid+1, right)</code></li>
-              <li><code>  merge(left, mid, right)</code></li>
-              <li><code>merge(left, mid, right)</code></li>
+              <li><code>  병합정렬(left, mid)</code></li>
+              <li><code>  병합정렬(mid+1, right)</code></li>
+              <li><code>  합치기(left, mid, right)</code></li>
+              <li><code>합치기(left, mid, right):</code></li>
               <li><code>  k = left, j = mid+1</code></li>
-              <li><code>  while 양쪽 모두 남음</code></li>
-              <li><code>    if a[j] &lt; a[k]</code></li>
-              <li><code>      a[j]를 k칸에 끼워 넣기</code></li>
-              <li><code>    else a[k]는 그대로</code></li>
-              <li><code>    k = k + 1</code></li>
+              <li><code>  양쪽 모두 남은 동안 반복</code></li>
+              <li><code>    a[j] &lt; a[k]이면</code></li>
+              <li><code>      a[j]를 k칸에 끼움</code></li>
+              <li><code>    아니면 a[k]는 그대로</code></li>
+              <li><code>    k를 1 늘림</code></li>
               <li><code>  남은 값은 이미 제자리</code></li>
               <li><code>정렬 완료</code></li>
             </ol>
