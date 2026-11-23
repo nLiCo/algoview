@@ -24,6 +24,9 @@ const stepBtn = document.getElementById('step-btn');
 const speedInput = document.getElementById('speed-input');
 const barsBox = document.getElementById('bars');
 const message = document.getElementById('message');
+const codeLists = document.querySelectorAll('.code');   // 알고리즘별 의사코드 목록
+const codeVars = document.getElementById('code-vars');
+const codeScroll = document.getElementById('code-scroll');   // 의사코드의 스크롤되는 부분
 const compareCountText = document.getElementById('compare-count');
 const swapCountText = document.getElementById('swap-count');
 
@@ -43,6 +46,9 @@ let swapCount = 0;      // 이번 정렬에서 교환한 횟수
 //   swap    : 방금 바꾼 칸 번호 목록
 //   sorted  : 칸마다 true/false. true인 칸은 자리가 확정됨 (없으면 표시하지 않는다)
 //   ordered : 칸마다 true/false. true인 칸은 순서만 맞고 아직 확정은 아님 (삽입·병합 정렬만)
+//   lines   : 이번 단계에서 실행된 의사코드 줄 번호 목록 (1부터. 없으면 강조하지 않는다)
+//             막대가 움직이지 않는 줄(반복문, i = i + 1 등)도 함께 실행됐다면 같이 담는다
+//   vars    : 의사코드 아래에 보여 줄 변수 값 (예: { n: 10, i: 2, j: 5 }. 없으면 비운다)
 //   message : 화면에 보여 줄 설명
 //   done    : 정렬이 끝났으면 true
 // 정렬마다 따로 쓰는 상태(pivot, blockStart 등)는 그 정렬의 설명에 적어 두었다.
@@ -54,10 +60,18 @@ function* bubbleSort(original) {
   for (let i = 0; i < n - 1; i++) {
     // i바퀴가 끝나면 뒤에서 i개는 자리가 확정되어 있으므로 비교하지 않는다
     for (let j = 0; j < n - 1 - i; j++) {
+      // 바퀴의 첫 비교는 바깥 반복(1번 줄)부터 지나오고, 그다음부터는 안쪽 반복(2번 줄)만 지나온다
+      let lines = [2, 3];
+      if (j === 0) {
+        lines = [1, 2, 3];
+      }
+
       yield {
         array: arr.slice(),
         compare: [j, j + 1],
         sorted: sorted.slice(),
+        lines: lines,
+        vars: { n: n, i: i, j: j },
         message: arr[j] + ' 와(과) ' + arr[j + 1] + ' 비교',
       };
 
@@ -70,6 +84,8 @@ function* bubbleSort(original) {
           array: arr.slice(),
           swap: [j, j + 1],
           sorted: sorted.slice(),
+          lines: [4],
+          vars: { n: n, i: i, j: j },
           message: arr[j + 1] + ' 이(가) 더 커서 자리 교환',
         };
       }
@@ -77,11 +93,19 @@ function* bubbleSort(original) {
 
     // 이번 바퀴에서 가장 큰 값이 맨 뒤(n-1-i번)로 왔으므로 그 칸은 자리 확정
     sorted[n - 1 - i] = true;
+    yield {
+      array: arr.slice(),
+      sorted: sorted.slice(),
+      lines: [5],
+      vars: { n: n, i: i },
+      message: arr[n - 1 - i] + ' 은(는) ' + (n - i) + '번째 자리 확정',
+    };
   }
 
   yield {
     array: arr.slice(),
     sorted: new Array(n).fill(true),
+    lines: [6],
     message: '정렬 완료!',
     done: true,
   };
@@ -105,6 +129,8 @@ function* selectionSort(original) {
         array: arr.slice(),
         compare: [minIndex, j],
         sorted: sorted.slice(),
+        lines: [4],
+        vars: { n: n, i: i, j: j, minIndex: minIndex },
         message: '현재 최솟값 ' + arr[minIndex] + ' 와(과) ' + arr[j] + ' 비교',
       };
 
@@ -123,17 +149,27 @@ function* selectionSort(original) {
         array: arr.slice(),
         swap: [i, minIndex],
         sorted: sorted.slice(),
+        lines: [7],
+        vars: { n: n, i: i, minIndex: minIndex },
         message: '최솟값 ' + arr[i] + ' 을(를) ' + (i + 1) + '번째 자리로 이동',
       };
     }
 
     // 최솟값이 i번에 들어왔으므로 그 칸은 자리 확정
     sorted[i] = true;
+    yield {
+      array: arr.slice(),
+      sorted: sorted.slice(),
+      lines: [8],
+      vars: { n: n, i: i },
+      message: arr[i] + ' 은(는) ' + (i + 1) + '번째 자리 확정',
+    };
   }
 
   yield {
     array: arr.slice(),
     sorted: new Array(n).fill(true),
+    lines: [9],
     message: '정렬 완료!',
     done: true,
   };
@@ -160,6 +196,8 @@ function* insertionSort(original) {
         array: arr.slice(),
         compare: [j - 1, j],
         ordered: ordered.slice(),
+        lines: [4],
+        vars: { n: n, i: i, j: j },
         message: arr[j - 1] + ' 와(과) ' + arr[j] + ' 비교',
       };
 
@@ -172,6 +210,8 @@ function* insertionSort(original) {
           array: arr.slice(),
           swap: [j - 1, j],
           ordered: ordered.slice(),
+          lines: [5],
+          vars: { n: n, i: i, j: j },
           message: arr[j - 1] + ' 을(를) 앞으로 한 칸 이동',
         };
 
@@ -185,6 +225,7 @@ function* insertionSort(original) {
   yield {
     array: arr.slice(),
     sorted: new Array(n).fill(true),
+    lines: [8],
     message: '정렬 완료!',
     done: true,
   };
@@ -216,6 +257,7 @@ function* mergeSort(original) {
   yield {
     array: arr.slice(),
     sorted: new Array(n).fill(true),
+    lines: [15],
     message: '정렬 완료!',
     done: true,
   };
@@ -257,6 +299,8 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
       blockStart: blockStart.slice(),
       leftGroup: [k, leftEnd],
       rightGroup: [j, right],
+      lines: [10],
+      vars: { left: left, mid: mid, right: right, k: k, j: j },
       message: '왼쪽 ' + arr[k] + ' 와(과) 오른쪽 ' + arr[j] + ' 비교',
     };
 
@@ -279,6 +323,8 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
         blockStart: blockStart.slice(),
         leftGroup: [k + 1, leftEnd],
         rightGroup: [j, right],
+        lines: [11],
+        vars: { left: left, mid: mid, right: right, k: k, j: j },
         message: '오른쪽 ' + value + ' 이(가) 더 작아서 ' + (k + 1) + '번째 자리로 가져오고, 왼쪽 값들을 한 칸씩 뒤로 민다',
       };
     } else {
@@ -291,6 +337,8 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
         blockStart: blockStart.slice(),
         leftGroup: [k + 1, leftEnd],
         rightGroup: [j, right],
+        lines: [12],
+        vars: { left: left, mid: mid, right: right, k: k, j: j },
         message: '왼쪽 ' + arr[k] + ' 이(가) 더 작아서 그대로 둔다',
       };
     }
@@ -307,6 +355,8 @@ function* merge(arr, left, mid, right, ordered, blockStart) {
     array: arr.slice(),
     ordered: ordered.slice(),
     blockStart: blockStart.slice(),
+    lines: [14],
+    vars: { left: left, mid: mid, right: right },
     message: '남은 값은 이미 제자리에 있으므로 그대로 둔다 (' + (left + 1) + '~' + (right + 1) + '번째 합치기 끝)',
   };
 }
@@ -331,6 +381,7 @@ function* quickSort(original) {
   yield {
     array: arr.slice(),
     sorted: new Array(n).fill(true),
+    lines: [15],
     message: '정렬 완료!',
     done: true,
   };
@@ -364,6 +415,8 @@ function* quickSortRange(arr, low, high, sorted) {
       array: arr.slice(),
       sorted: sorted.slice(),
       blockStart: makeQuickBlockStart(sorted),
+      lines: [3],
+      vars: { low: low, high: high },
       message: '한 칸짜리 구간의 ' + arr[low] + ' 은(는) 자리 확정',
     };
     return;
@@ -382,6 +435,12 @@ function* partition(arr, low, high, sorted) {
   // 분할하는 동안 low ~ i-1번은 피벗보다 작은 값, i ~ j-1번은 피벗보다 큰 값, j ~ high-1번은 아직 안 본 값이다
 
   for (let j = low; j < high; j++) {
+    // 분할의 첫 비교는 partition 호출(4번 줄)과 피벗 준비(8번 줄)부터 지나오고, 그다음부터는 반복(9번 줄)만 지나온다
+    let lines = [9, 10];
+    if (j === low) {
+      lines = [4, 8, 9, 10];
+    }
+
     yield {
       array: arr.slice(),
       compare: [j],
@@ -390,33 +449,54 @@ function* partition(arr, low, high, sorted) {
       blockStart: makeQuickBlockStart(sorted),
       leftGroup: [low, i - 1],
       rightGroup: [i, j - 1],
+      lines: lines,
+      vars: { low: low, high: high, pivot: pivotValue, i: i, j: j },
       message: arr[j] + ' 와(과) 피벗 ' + pivotValue + ' 비교',
     };
 
     if (arr[j] < pivotValue) {
-      // 피벗보다 작은 값은 앞쪽(i번)으로 보낸다. 이미 i번에 있으면 바꿀 필요가 없다
+      // 피벗보다 작은 값은 앞쪽(i번)으로 보내고 i를 1 늘린다 (11·12번 줄)
+      // 보여 주는 i는 늘린 뒤의 값이므로, 방금 값을 넣은 칸은 i-1번이다
       if (i !== j) {
         const temp = arr[i];
         arr[i] = arr[j];
         arr[j] = temp;
+        i++;
 
         yield {
           array: arr.slice(),
-          swap: [i, j],
+          swap: [i - 1, j],
           pivot: high,
           sorted: sorted.slice(),
           blockStart: makeQuickBlockStart(sorted),
-          leftGroup: [low, i],
-          rightGroup: [i + 1, j],
-          message: arr[i] + ' 이(가) 피벗보다 작아서 앞쪽으로 교환',
+          leftGroup: [low, i - 1],
+          rightGroup: [i, j],
+          lines: [11, 12],
+          vars: { low: low, high: high, pivot: pivotValue, i: i, j: j },
+          message: arr[i - 1] + ' 이(가) 피벗보다 작아서 앞쪽으로 교환하고, i를 1 늘린다',
+        };
+      } else {
+        // 이미 i번(= j번)에 있으므로 교환은 하지 않고 i만 1 늘린다 (같은 칸끼리 교환은 아무 일도 안 한다)
+        i++;
+
+        yield {
+          array: arr.slice(),
+          pivot: high,
+          sorted: sorted.slice(),
+          blockStart: makeQuickBlockStart(sorted),
+          leftGroup: [low, i - 1],
+          rightGroup: [i, j],
+          lines: [12],
+          vars: { low: low, high: high, pivot: pivotValue, i: i, j: j },
+          message: arr[j] + ' 은(는) 피벗보다 작지만 이미 앞쪽 끝에 있어서 i만 1 늘린다',
         };
       }
-      i++;
     }
   }
 
-  // 작은 값들 바로 뒤(i번)에 피벗을 넣는다
-  if (i !== high) {
+  // 작은 값들 바로 뒤(i번)에 피벗을 넣는다. 피벗이 이미 i번에 있으면 바꿀 필요가 없다
+  const pivotMoved = (i !== high);
+  if (pivotMoved) {
     const temp = arr[i];
     arr[i] = arr[high];
     arr[high] = temp;
@@ -428,11 +508,19 @@ function* partition(arr, low, high, sorted) {
       blockStart: makeQuickBlockStart(sorted),
       leftGroup: [low, i - 1],
       rightGroup: [i + 1, high],
+      lines: [13],
+      vars: { low: low, high: high, pivot: pivotValue, i: i },
       message: '피벗 ' + pivotValue + ' 을(를) 작은 값들 바로 뒤(' + (i + 1) + '번째)로 교환',
     };
   }
 
   // 피벗 앞은 모두 작고 뒤는 모두 크므로 피벗의 자리는 확정이다
+  // 피벗을 옮기지 않았으면 13번 줄(같은 칸끼리 교환)도 이 단계에서 지나온 것으로 칠한다
+  let confirmLines = [14];
+  if (!pivotMoved) {
+    confirmLines = [13, 14];
+  }
+
   sorted[i] = true;
   yield {
     array: arr.slice(),
@@ -440,6 +528,8 @@ function* partition(arr, low, high, sorted) {
     blockStart: makeQuickBlockStart(sorted),
     leftGroup: [low, i - 1],
     rightGroup: [i + 1, high],
+    lines: confirmLines,
+    vars: { low: low, high: high, pivot: pivotValue, i: i },
     message: '피벗 ' + pivotValue + ' 은(는) 자리 확정. 앞뒤 구간을 따로 정렬한다',
   };
 
@@ -503,6 +593,68 @@ function renderBars(state) {
 }
 
 
+// ----- 의사코드 -----
+// 고른 알고리즘의 의사코드 목록만 보이게 한다
+function showPseudocode() {
+  for (const list of codeLists) {
+    list.hidden = (list.dataset.algo !== algoSelect.value);
+  }
+  highlightLines([]);
+  showVars(null);
+}
+
+// 변수 값을 "n = 10 · i = 2 · j = 5" 모양으로 보여 준다. vars가 없으면 비운다
+function showVars(vars) {
+  const parts = [];
+  if (vars) {
+    for (const name in vars) {
+      parts.push(name + ' = ' + vars[name]);
+    }
+  }
+  codeVars.textContent = parts.join(' · ');
+}
+
+// 보이는 의사코드에서 lines에 든 줄(1부터)을 모두 강조한다. 빈 목록이면 강조를 모두 지운다
+function highlightLines(lines) {
+  let lastItem = null;   // 강조한 줄 중 마지막 줄 (지금 하는 일에 가장 가까운 줄)
+  for (const list of codeLists) {
+    const items = list.querySelectorAll('li');
+    for (let i = 0; i < items.length; i++) {
+      if (!list.hidden && lines.includes(i + 1)) {
+        items[i].classList.add('current');
+        lastItem = items[i];
+      } else {
+        items[i].classList.remove('current');
+      }
+    }
+  }
+  scrollToLine(lastItem);
+}
+
+// 줄이 코드 영역에서 다 보이지 않을 때만, 그 줄이 가운데쯤 오도록 코드 영역만 스크롤한다
+// (이미 보이는 줄이면 그대로 둔다. 페이지 전체는 움직이지 않는다)
+// 줄이 없으면 맨 위로 돌린다
+function scrollToLine(item) {
+  if (item === null) {
+    codeScroll.scrollTop = 0;
+    return;
+  }
+
+  // 지금 코드 영역에 보이는 범위
+  const viewTop = codeScroll.scrollTop;
+  const viewBottom = codeScroll.scrollTop + codeScroll.clientHeight;
+  const itemTop = item.offsetTop;
+  const itemBottom = item.offsetTop + item.offsetHeight;
+  if (itemTop >= viewTop && itemBottom <= viewBottom) {
+    return;   // 이미 잘 보인다
+  }
+
+  // 줄의 위쪽 위치에서 (영역 높이 - 줄 높이)의 절반만큼 빼면 줄이 가운데에 온다
+  const top = item.offsetTop - (codeScroll.clientHeight - item.offsetHeight) / 2;
+  codeScroll.scrollTo({ top: top, behavior: 'smooth' });
+}
+
+
 // ----- 비교·교환 횟수 -----
 function showCounts() {
   compareCountText.textContent = compareCount;
@@ -553,6 +705,8 @@ function resetArray() {
   runBtn.textContent = '실행';
   resetCounts();
   renderBars({ array: numbers });
+  highlightLines([]);
+  showVars(null);
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
@@ -570,6 +724,7 @@ function changeAlgorithm() {
   quickGroupLegend.hidden = (algoSelect.value !== 'quick');
   blockLegend.hidden = (algoSelect.value !== 'merge');
   groupLegend.hidden = (algoSelect.value !== 'merge');
+  showPseudocode();
   steps = null;
   runBtn.textContent = '실행';
   resetCounts();
@@ -643,6 +798,13 @@ function doStep() {
   showCounts();
 
   renderBars(state);
+  // 줄 번호가 없는 상태는 강조를 지운다
+  if (state.lines) {
+    highlightLines(state.lines);
+  } else {
+    highlightLines([]);
+  }
+  showVars(state.vars);
   message.textContent = state.message;
   numbers = state.array;
 

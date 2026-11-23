@@ -19,6 +19,7 @@
   --color-group-right: #fdecd8;  /* 막대 뒤 배경: 합치는 오른쪽 묶음 / 피벗보다 큰 값 */
   --color-sorted: #4caf7a;    /* 정렬 완료 */
   --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 확정 아님 (삽입 정렬 앞부분) */
+  --color-code-current: #fff1bf;   /* 의사코드에서 지금 실행 중인 줄 */
 }
 
 /* 패딩·테두리를 너비 안에 포함시켜 크기 계산을 쉽게 한다 */
@@ -298,6 +299,89 @@ select {
   background: var(--color-ordered);
 }
 
+/* 막대 그래프와 의사코드를 나란히 둔다 (좁은 화면에서는 아래 미디어 쿼리에서 한 줄로 바꾼다) */
+.sort-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;   /* 왼쪽 막대는 남는 폭을 모두, 오른쪽 의사코드는 260px */
+  gap: 16px;
+  align-items: start;
+}
+
+/* 의사코드 상자: 막대 그래프(.bars)와 같은 높이로 고정하고, 제목 · 코드 · 변수를 위에서 아래로 쌓는다 */
+.pseudocode {
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+/* 코드 부분: 남는 높이를 모두 차지하고, 넘치면 이 안에서만 스크롤한다 (제목·변수는 고정)
+   min-height: 0 이 있어야 flex 안에서 내용보다 작게 줄어들어 스크롤이 생긴다
+   position: relative 는 sort.js가 줄의 위치(offsetTop)를 이 상자 기준으로 재기 위해 둔다 */
+.code-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  scrollbar-width: thin;                              /* 스크롤 막대를 얇게 */
+  scrollbar-color: var(--color-line) transparent;     /* 막대는 연한 테두리색, 바탕은 투명 */
+}
+
+/* scrollbar-width를 모르는 옛 크롬·사파리용: 같은 뜻 */
+.code-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.code-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 3px;
+}
+
+.pseudocode h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+/* 줄 번호는 ol이 자동으로 붙인다
+   목록 폭을 가장 긴 줄에 맞춰서(max-content), 옆으로 긴 줄도 강조색이 끝까지 깔리게 한다
+   min-width: 100% 는 줄이 짧을 때도 강조색이 상자 폭만큼은 깔리게 한다 */
+.code {
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding-left: 2em;
+  font-family: Consolas, monospace;
+}
+
+.code li {
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* 들여쓰기 공백을 그대로 보여 준다 */
+.code code {
+  font-family: inherit;
+  white-space: pre;
+}
+
+.code li.current {
+  background: var(--color-code-current);
+  font-weight: bold;
+}
+
+/* 의사코드 아래의 변수 값 */
+.code-vars {
+  min-height: 1.5em;   /* 값이 없을 때도 높이를 유지해 상자가 흔들리지 않게 */
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-line);
+  font-family: Consolas, monospace;
+}
+
 /* ===== 바닥글 ===== */
 footer {
   text-align: center;
@@ -318,5 +402,14 @@ footer {
 
   .bars {
     height: 200px;
+  }
+
+  .pseudocode {
+    height: 200px;
+  }
+
+  /* 의사코드를 막대 아래로 내린다 */
+  .sort-view {
+    grid-template-columns: 1fr;
   }
 }

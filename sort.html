@@ -49,7 +49,85 @@
     <!-- 막대 그래프 -->
     <section>
       <h3 id="algo-title">버블 정렬</h3>
-      <div id="bars" class="bars"></div>
+
+      <!-- 넓은 화면에서는 막대 오른쪽에, 좁은 화면에서는 막대 아래에 의사코드가 온다 -->
+      <div class="sort-view">
+        <div id="bars" class="bars"></div>
+
+        <!-- 의사코드: 고른 알고리즘의 목록만 보이고, 지금 실행 중인 줄은 sort.js가 강조한다 -->
+        <div class="pseudocode">
+          <h4>의사코드</h4>
+          <!-- 코드 부분만 스크롤된다. 강조한 줄이 가운데쯤 오도록 sort.js가 스크롤한다 -->
+          <div id="code-scroll" class="code-scroll">
+            <ol class="code" data-algo="bubble">
+              <li><code>i: 0 ~ n-2 반복</code></li>
+              <li><code>  j: 0 ~ n-2-i 반복</code></li>
+              <li><code>    a[j] &gt; a[j+1]이면</code></li>
+              <li><code>      두 값을 교환</code></li>
+              <li><code>  a[n-1-i] 자리 확정</code></li>
+              <li><code>정렬 완료</code></li>
+            </ol>
+            <ol class="code" data-algo="selection" hidden>
+              <li><code>for i = 0 to n-2</code></li>
+              <li><code>  minIndex = i</code></li>
+              <li><code>  for j = i+1 to n-1</code></li>
+              <li><code>    if a[j] &lt; a[minIndex]</code></li>
+              <li><code>      minIndex = j</code></li>
+              <li><code>  if minIndex ≠ i</code></li>
+              <li><code>    a[i]와 a[minIndex] 교환</code></li>
+              <li><code>  a[i] 자리 확정</code></li>
+              <li><code>정렬 완료</code></li>
+            </ol>
+            <ol class="code" data-algo="insertion" hidden>
+              <li><code>for i = 1 to n-1</code></li>
+              <li><code>  j = i</code></li>
+              <li><code>  while j &gt; 0</code></li>
+              <li><code>    if a[j-1] &gt; a[j]</code></li>
+              <li><code>      a[j-1]와 a[j] 교환</code></li>
+              <li><code>      j = j - 1</code></li>
+              <li><code>    else 반복 멈춤</code></li>
+              <li><code>정렬 완료</code></li>
+            </ol>
+            <ol class="code" data-algo="merge" hidden>
+              <li><code>mergeSort(left, right)</code></li>
+              <li><code>  if left ≥ right: 끝</code></li>
+              <li><code>  mid = (left+right) / 2</code></li>
+              <li><code>  mergeSort(left, mid)</code></li>
+              <li><code>  mergeSort(mid+1, right)</code></li>
+              <li><code>  merge(left, mid, right)</code></li>
+              <li><code>merge(left, mid, right)</code></li>
+              <li><code>  k = left, j = mid+1</code></li>
+              <li><code>  while 양쪽 모두 남음</code></li>
+              <li><code>    if a[j] &lt; a[k]</code></li>
+              <li><code>      a[j]를 k칸에 끼워 넣기</code></li>
+              <li><code>    else a[k]는 그대로</code></li>
+              <li><code>    k = k + 1</code></li>
+              <li><code>  남은 값은 이미 제자리</code></li>
+              <li><code>정렬 완료</code></li>
+            </ol>
+            <ol class="code" data-algo="quick" hidden>
+              <li><code>퀵정렬(low, high):</code></li>
+              <li><code>  low &gt; high이면 끝</code></li>
+              <li><code>  low = high이면 자리 확정</code></li>
+              <li><code>  p = 분할(low, high)</code></li>
+              <li><code>  퀵정렬(low, p-1)</code></li>
+              <li><code>  퀵정렬(p+1, high)</code></li>
+              <li><code>분할(low, high):</code></li>
+              <li><code>  피벗 = a[high], i = low</code></li>
+              <li><code>  j: low ~ high-1 반복</code></li>
+              <li><code>    a[j] &lt; 피벗이면</code></li>
+              <li><code>      a[i]와 a[j] 교환</code></li>
+              <li><code>      i를 1 늘림</code></li>
+              <li><code>  a[i]와 a[high] 교환</code></li>
+              <li><code>  a[i] 자리 확정</code></li>
+              <li><code>정렬 완료</code></li>
+            </ol>
+          </div>
+          <!-- 지금 단계의 변수 값 (예: n = 10 · i = 2 · j = 5) -->
+          <p id="code-vars" class="code-vars"></p>
+        </div>
+      </div>
+
       <p id="message" class="message">무작위 생성으로 배열을 만든 뒤 실행해 보세요.</p>
       <!-- 지금까지 한 비교·교환 횟수: sort.js가 한 단계마다 갱신한다 -->
       <p>비교 <span id="compare-count">0</span>회 · 교환 <span id="swap-count">0</span>회</p>
