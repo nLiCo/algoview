@@ -10,12 +10,7 @@ const SPEED_DELAYS = [1000, 500, 300, 150, 50];
 // 화면 요소
 const algoSelect = document.getElementById('algo-select');
 const algoTitle = document.getElementById('algo-title');
-const orderedLegend = document.getElementById('ordered-legend');
-const pivotLegend = document.getElementById('pivot-legend');
-const quickBlockLegend = document.getElementById('quick-block-legend');
-const quickGroupLegend = document.getElementById('quick-group-legend');
-const blockLegend = document.getElementById('block-legend');
-const groupLegend = document.getElementById('group-legend');
+const algoLegends = document.querySelectorAll('.legend li[data-algos]');   // 특정 알고리즘에서만 보이는 범례
 const sizeInput = document.getElementById('size-input');
 const randomBtn = document.getElementById('random-btn');
 const runBtn = document.getElementById('run-btn');
@@ -36,6 +31,15 @@ let steps = null;    // 정렬 제너레이터 (정렬 중이 아니면 null)
 let timer = null;    // 자동 실행 타이머 (자동 실행 중이 아니면 null)
 let compareCount = 0;   // 이번 정렬에서 비교한 횟수
 let swapCount = 0;      // 이번 정렬에서 교환한 횟수
+
+
+// ----- 공통 도우미 -----
+// 배열에서 a번과 b번 값을 맞바꾼다 (정렬과 무작위 섞기에서 같이 쓴다)
+function swapItems(arr, a, b) {
+  const temp = arr[a];
+  arr[a] = arr[b];
+  arr[b] = temp;
+}
 
 
 // ----- 버블 정렬 -----
@@ -76,9 +80,7 @@ function* bubbleSort(original) {
       };
 
       if (arr[j] > arr[j + 1]) {
-        const temp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = temp;
+        swapItems(arr, j, j + 1);
 
         yield {
           array: arr.slice(),
@@ -157,9 +159,7 @@ function* selectionSort(original) {
     // 최솟값이 이미 i번에 있으면 바꿀 필요가 없다
     const swapped = (minIndex !== i);
     if (swapped) {
-      const temp = arr[i];
-      arr[i] = arr[minIndex];
-      arr[minIndex] = temp;
+      swapItems(arr, i, minIndex);
 
       yield {
         array: arr.slice(),
@@ -232,9 +232,7 @@ function* insertionSort(original) {
       if (arr[j - 1] > arr[j]) {
         // 앞의 값과 바꾸고 j를 1 줄인다 (5·6번 줄)
         // 보여 주는 j는 줄인 뒤의 값이므로, 방금 바꾼 두 칸은 j번과 j+1번이다
-        const temp = arr[j - 1];
-        arr[j - 1] = arr[j];
-        arr[j] = temp;
+        swapItems(arr, j - 1, j);
         j--;
 
         yield {
@@ -501,9 +499,7 @@ function* partition(arr, low, high, sorted) {
       // 피벗보다 작은 값은 앞쪽(i번)으로 보내고 i를 1 늘린다 (11·12번 줄)
       // 보여 주는 i는 늘린 뒤의 값이므로, 방금 값을 넣은 칸은 i-1번이다
       if (i !== j) {
-        const temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
+        swapItems(arr, i, j);
         i++;
 
         yield {
@@ -540,9 +536,7 @@ function* partition(arr, low, high, sorted) {
   // 작은 값들 바로 뒤(i번)에 피벗을 넣는다. 피벗이 이미 i번에 있으면 바꿀 필요가 없다
   const pivotMoved = (i !== high);
   if (pivotMoved) {
-    const temp = arr[i];
-    arr[i] = arr[high];
-    arr[high] = temp;
+    swapItems(arr, i, high);
 
     yield {
       array: arr.slice(),
@@ -582,7 +576,7 @@ function* partition(arr, low, high, sorted) {
 
 // ----- 막대 그리기 -----
 // state는 정렬 함수가 yield한 상태와 같은 모양이다
-// 막대마다 칸(slot)을 하나씩 만들고 그 안에 막대를 넣는다. 칸의 배경색으로 병합 정렬의 묶음을 보여 준다
+// 막대마다 칸(slot)을 하나씩 만들고 그 안에 막대를 넣는다. 칸의 배경색으로 병합·퀵 정렬의 묶음을 보여 준다
 // (묶음은 회색, 병합 정렬에서 합치는 두 묶음 / 퀵 정렬에서 피벗보다 작은·큰 값은 파랑·주황)
 function renderBars(state) {
   barsBox.innerHTML = '';   // 기존 막대를 모두 지우고 새로 그린다
@@ -642,8 +636,6 @@ function showPseudocode() {
   for (const list of codeLists) {
     list.hidden = (list.dataset.algo !== algoSelect.value);
   }
-  highlightLines([]);
-  showVars(null);
 }
 
 // 변수 값을 "n = 10 · i = 2 · j = 5" 모양으로 보여 준다. vars가 없으면 비운다
@@ -734,17 +726,14 @@ function makeRandomArray(size) {
   }
   for (let i = size - 1; i > 0; i--) {
     const randomNumber = Math.floor(Math.random() * (i + 1));
-    const temp = arr[i];
-    arr[i] = arr[randomNumber];
-    arr[randomNumber] = temp;
+    swapItems(arr, i, randomNumber);
   }
   return arr;
 }
 
-function resetArray() {
-  const size = readSize();
-  numbers = makeRandomArray(size);
-  steps = null;   // 새 배열이므로 진행 중이던 정렬은 버린다
+// 진행 중이던 정렬을 버리고, 지금 배열을 색·강조·횟수 없이 처음 상태로 다시 보여 준다
+function clearProgress() {
+  steps = null;
   runBtn.textContent = '실행';
   resetCounts();
   renderBars({ array: numbers });
@@ -753,26 +742,23 @@ function resetArray() {
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
-// 알고리즘을 바꾸면 진행 중이던 단계는 버리고 지금 배열을 색 없이 다시 보여 준다
+// 새 배열을 만든다. 새 배열이므로 진행 중이던 정렬은 버린다
+function resetArray() {
+  const size = readSize();
+  numbers = makeRandomArray(size);
+  clearProgress();
+}
+
+// 알고리즘을 바꾸면 제목·범례·의사코드를 그 알고리즘에 맞추고, 진행 중이던 단계는 버린다
 function changeAlgorithm() {
   algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
-  // "순서만 맞음" 색은 삽입·병합 정렬에서만, 피벗 색은 퀵 정렬에서만, 묶음 색은 병합 정렬에서만 쓰므로 그때만 범례에 보인다
-  if (algoSelect.value === 'insertion' || algoSelect.value === 'merge') {
-    orderedLegend.hidden = false;
-  } else {
-    orderedLegend.hidden = true;
+  // 범례 중 data-algos가 있는 것은 거기 적힌 알고리즘(공백으로 구분)을 골랐을 때만 보인다
+  for (const item of algoLegends) {
+    const algos = item.dataset.algos.split(' ');
+    item.hidden = !algos.includes(algoSelect.value);
   }
-  pivotLegend.hidden = (algoSelect.value !== 'quick');
-  quickBlockLegend.hidden = (algoSelect.value !== 'quick');
-  quickGroupLegend.hidden = (algoSelect.value !== 'quick');
-  blockLegend.hidden = (algoSelect.value !== 'merge');
-  groupLegend.hidden = (algoSelect.value !== 'merge');
   showPseudocode();
-  steps = null;
-  runBtn.textContent = '실행';
-  resetCounts();
-  renderBars({ array: numbers });
-  message.textContent = '실행 또는 한 단계를 눌러 보세요.';
+  clearProgress();
 }
 
 

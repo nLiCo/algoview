@@ -17,8 +17,8 @@
   --color-group: #eceef2;        /* 막대 뒤 배경: 묶음 (병합·퀵 정렬) */
   --color-group-left: #e3ecfb;   /* 막대 뒤 배경: 합치는 왼쪽 묶음 / 피벗보다 작은 값 */
   --color-group-right: #fdecd8;  /* 막대 뒤 배경: 합치는 오른쪽 묶음 / 피벗보다 큰 값 */
-  --color-sorted: #4caf7a;    /* 정렬 완료 */
-  --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 확정 아님 (삽입 정렬 앞부분) */
+  --color-sorted: #4caf7a;    /* 자리 확정 */
+  --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 자리 확정 아님 (삽입·병합 정렬) */
   --color-code-current: #fff1bf;   /* 의사코드에서 지금 실행 중인 줄 */
 }
 
