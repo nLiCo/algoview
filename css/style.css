@@ -23,6 +23,7 @@
 
   /* 탐색 격자 색 */
   --color-cell: #ffffff;      /* 빈 칸 */
+  --color-wall: #3a4256;      /* 벽 */
   --color-start: #2e9e5b;     /* 시작점 */
   --color-goal: #e05252;      /* 도착점 */
 }
@@ -396,12 +397,20 @@ select {
   width: 100%;
   background: var(--color-line);
   border: 1px solid var(--color-line);
+
+  /* 격자 위에서 끌 때 화면이 스크롤되거나 글자가 선택되지 않게 한다 */
+  touch-action: none;
+  user-select: none;
 }
 
 /* 칸 하나: aspect-ratio로 정사각형을 유지한다 */
 .cell {
   aspect-ratio: 1;
   background: var(--color-cell);
+}
+
+.cell.wall {
+  background: var(--color-wall);
 }
 
 .cell.start {
@@ -412,12 +421,29 @@ select {
   background: var(--color-goal);
 }
 
+/* 끌어서 옮길 수 있는 칸 */
+.cell.start,
+.cell.goal {
+  cursor: grab;
+}
+
 .swatch.start {
   background: var(--color-start);
 }
 
 .swatch.goal {
   background: var(--color-goal);
+}
+
+.swatch.wall {
+  background: var(--color-wall);
+}
+
+/* 격자 위의 사용법 안내 */
+.hint {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--color-sub);
 }
 
 /* ===== 바닥글 ===== */
