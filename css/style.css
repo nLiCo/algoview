@@ -20,6 +20,11 @@
   --color-sorted: #4caf7a;    /* 자리 확정 */
   --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 자리 확정 아님 (삽입·병합 정렬) */
   --color-code-current: #fff1bf;   /* 의사코드에서 지금 실행 중인 줄 */
+
+  /* 탐색 격자 색 */
+  --color-cell: #ffffff;      /* 빈 칸 */
+  --color-start: #2e9e5b;     /* 시작점 */
+  --color-goal: #e05252;      /* 도착점 */
 }
 
 /* 패딩·테두리를 너비 안에 포함시켜 크기 계산을 쉽게 한다 */
@@ -380,6 +385,39 @@ select {
   padding-top: 8px;
   border-top: 1px solid var(--color-line);
   font-family: Consolas, monospace;
+}
+
+/* ===== 탐색 페이지 ===== */
+/* 격자: 칸 사이의 1px 틈으로 바탕색(테두리색)이 비쳐 보여서 칸 경계선이 된다.
+   열 수와 최대 너비는 graph.js가 정한다 (칸이 너무 커지지 않게) */
+.grid {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  background: var(--color-line);
+  border: 1px solid var(--color-line);
+}
+
+/* 칸 하나: aspect-ratio로 정사각형을 유지한다 */
+.cell {
+  aspect-ratio: 1;
+  background: var(--color-cell);
+}
+
+.cell.start {
+  background: var(--color-start);
+}
+
+.cell.goal {
+  background: var(--color-goal);
+}
+
+.swatch.start {
+  background: var(--color-start);
+}
+
+.swatch.goal {
+  background: var(--color-goal);
 }
 
 /* ===== 바닥글 ===== */
