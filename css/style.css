@@ -26,6 +26,9 @@
   --color-wall: #3a4256;      /* 벽 */
   --color-start: #2e9e5b;     /* 시작점 */
   --color-goal: #e05252;      /* 도착점 */
+  --color-queued: #ffe9a8;    /* 대기 중 (큐에 들어 있는 칸) */
+  --color-visited: #b9d3f5;   /* 방문 완료 (큐에서 꺼내 처리한 칸) */
+  --color-current: #f28c28;   /* 지금 꺼낸 칸 */
 }
 
 /* 패딩·테두리를 너비 안에 포함시켜 크기 계산을 쉽게 한다 */
@@ -306,7 +309,8 @@ select {
 }
 
 /* 막대 그래프와 의사코드를 나란히 둔다 (좁은 화면에서는 아래 미디어 쿼리에서 한 줄로 바꾼다) */
-.sort-view {
+.sort-view,
+.graph-view {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;   /* 왼쪽 막대는 남는 폭을 모두, 오른쪽 의사코드는 260px */
   gap: 16px;
@@ -413,12 +417,24 @@ select {
   background: var(--color-wall);
 }
 
+.cell.queued {
+  background: var(--color-queued);
+}
+
+.cell.visited {
+  background: var(--color-visited);
+}
+
 .cell.start {
   background: var(--color-start);
 }
 
 .cell.goal {
   background: var(--color-goal);
+}
+
+.cell.current {
+  background: var(--color-current);
 }
 
 /* 끌어서 옮길 수 있는 칸 */
@@ -437,6 +453,18 @@ select {
 
 .swatch.wall {
   background: var(--color-wall);
+}
+
+.swatch.queued {
+  background: var(--color-queued);
+}
+
+.swatch.visited {
+  background: var(--color-visited);
+}
+
+.swatch.current {
+  background: var(--color-current);
 }
 
 /* 격자 위의 사용법 안내 */
@@ -473,7 +501,8 @@ footer {
   }
 
   /* 의사코드를 막대 아래로 내린다 */
-  .sort-view {
+  .sort-view,
+  .graph-view {
     grid-template-columns: 1fr;
   }
 }
