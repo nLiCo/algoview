@@ -27,7 +27,7 @@ const speedInput = document.getElementById('speed-input');
 const gridBox = document.getElementById('grid');
 const message = document.getElementById('message');
 const codeScroll = document.getElementById('code-scroll');   // 의사코드의 스크롤되는 부분
-const codeItems = document.querySelectorAll('#code-scroll li');   // 의사코드의 줄들
+const codeLists = document.querySelectorAll('.code');   // 알고리즘별 의사코드 목록
 const codeVars = document.getElementById('code-vars');
 const visitCountText = document.getElementById('visit-count');
 const pathLengthText = document.getElementById('path-length');
@@ -300,15 +300,18 @@ function showVars(vars) {
   codeVars.textContent = parts.join(' · ');
 }
 
-// 의사코드에서 lines에 든 줄(1부터)을 모두 강조한다. 빈 목록이면 강조를 모두 지운다
+// 보이는 의사코드에서 lines에 든 줄(1부터)을 모두 강조한다. 빈 목록이면 강조를 모두 지운다
 function highlightLines(lines) {
   let lastItem = null;   // 강조한 줄 중 마지막 줄 (지금 하는 일에 가장 가까운 줄)
-  for (let i = 0; i < codeItems.length; i++) {
-    if (lines.includes(i + 1)) {
-      codeItems[i].classList.add('current');
-      lastItem = codeItems[i];
-    } else {
-      codeItems[i].classList.remove('current');
+  for (const list of codeLists) {
+    const items = list.querySelectorAll('li');
+    for (let i = 0; i < items.length; i++) {
+      if (!list.hidden && lines.includes(i + 1)) {
+        items[i].classList.add('current');
+        lastItem = items[i];
+      } else {
+        items[i].classList.remove('current');
+      }
     }
   }
   scrollToLine(lastItem);
@@ -342,6 +345,38 @@ function scrollToLine(item) {
 // 칸 위치를 "(행, 열)" 글자로 만든다
 function positionText(pos) {
   return '(' + pos.row + ', ' + pos.col + ')';
+}
+
+// 도착점에서 prev를 따라 시작점까지 거슬러 올라가 경로를 만든 뒤, 시작점부터 한 칸씩 칠하는 단계들을 배열로 돌려준다
+// (BFS와 이후 DFS가 함께 쓴다)
+// firstLines: 첫 칸을 칠하는 단계에서 실행된 의사코드 줄, nextLines: 그 뒤 단계들에서 실행된 줄
+function makePathStates(goal, prev, visitCount, firstLines, nextLines) {
+  const path = [];
+  for (let pos = goal; pos !== null; pos = prev[pos.row][pos.col]) {
+    path.push(pos);
+  }
+  path.reverse();   // 시작점 → 도착점 순서로 뒤집는다
+
+  const states = [];
+  for (let i = 0; i < path.length; i++) {
+    const isLast = (i === path.length - 1);
+    let message = '경로의 ' + (i + 1) + '번째: ' + positionText(path[i]) + ' 칸을 칠했습니다.';
+    if (isLast) {
+      message = '경로를 모두 칠했습니다. 경로는 ' + path.length + '칸입니다.';
+    }
+    states.push({
+      current: null,
+      added: [],
+      pathCell: path[i],
+      visitCount: visitCount,
+      pathLength: path.length,
+      lines: (i === 0) ? firstLines : nextLines,
+      vars: { '경로 길이': path.length, '칠한 칸': i + 1 },
+      message: message,
+      done: isLast
+    });
+  }
+  return states;
 }
 
 // BFS 제너레이터: 큐에서 칸 하나를 꺼내 처리할 때마다 한 단계를 내보낸다 (yield)
@@ -388,30 +423,9 @@ function* bfs(walls, start, goal) {
         done: false
       };
 
-      // 도착점에서 prev를 따라 시작점까지 거슬러 올라가며 모은 뒤, 뒤집어서 시작점부터 칠한다
-      const path = [];
-      for (let pos = goal; pos !== null; pos = prev[pos.row][pos.col]) {
-        path.push(pos);
-      }
-      path.reverse();
-
-      for (let i = 0; i < path.length; i++) {
-        const isLast = (i === path.length - 1);
-        let message = '경로의 ' + (i + 1) + '번째: ' + positionText(path[i]) + ' 칸을 칠했습니다.';
-        if (isLast) {
-          message = '경로를 모두 칠했습니다. 경로는 ' + path.length + '칸입니다.';
-        }
-        yield {
-          current: null,
-          added: [],
-          pathCell: path[i],
-          visitCount: visitCount,
-          pathLength: path.length,
-          lines: (i === 0) ? [8, 9, 10] : [10],
-          vars: { '경로 길이': path.length, '칠한 칸': i + 1 },
-          message: message,
-          done: isLast
-        };
+      // 도착점에서 시작점까지 경로를 만들어, 시작점부터 한 칸씩 칠하는 단계를 이어서 내보낸다
+      for (const state of makePathStates(goal, prev, visitCount, [8, 9, 10], [10])) {
+        yield state;
       }
       return;
     }
