@@ -17,9 +17,19 @@
   --color-group: #eceef2;        /* 막대 뒤 배경: 묶음 (병합·퀵 정렬) */
   --color-group-left: #e3ecfb;   /* 막대 뒤 배경: 합치는 왼쪽 묶음 / 피벗보다 작은 값 */
   --color-group-right: #fdecd8;  /* 막대 뒤 배경: 합치는 오른쪽 묶음 / 피벗보다 큰 값 */
-  --color-sorted: #4caf7a;    /* 정렬 완료 */
-  --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 확정 아님 (삽입 정렬 앞부분) */
+  --color-sorted: #4caf7a;    /* 자리 확정 */
+  --color-ordered: #b5e0c4;   /* 순서는 맞지만 아직 자리 확정 아님 (삽입·병합 정렬) */
   --color-code-current: #fff1bf;   /* 의사코드에서 지금 실행 중인 줄 */
+
+  /* 탐색 격자 색 */
+  --color-cell: #ffffff;      /* 빈 칸 */
+  --color-wall: #3a4256;      /* 벽 */
+  --color-start: #2e9e5b;     /* 시작점 */
+  --color-goal: #e05252;      /* 도착점 */
+  --color-queued: #ffe9a8;    /* 대기 중 (큐에 들어 있는 칸) */
+  --color-visited: #b9d3f5;   /* 방문 완료 (큐에서 꺼내 처리한 칸) */
+  --color-path: #8e6ad8;      /* 최종 경로 */
+  --color-current: #f28c28;   /* 지금 꺼낸 칸 */
 }
 
 /* 패딩·테두리를 너비 안에 포함시켜 크기 계산을 쉽게 한다 */
@@ -215,7 +225,9 @@ select {
   border-radius: 3px 3px 0 0;
 }
 
-/* 비교·교환 색이 이 색보다 우선하도록 앞쪽에 둔다 */
+/* 뒤에 있는 규칙이 앞의 규칙을 덮는다: 순서 맞음·자리 확정 < 비교 < 교환 < 기준 막대(보라)
+   기준 막대(퀵 정렬의 피벗, 선택 정렬의 현재 최솟값, 삽입 정렬의 끼워 넣는 값)는
+   비교·교환 대상과 겹쳐도 항상 보라색으로 보인다 */
 .bar.ordered {
   background: var(--color-ordered);
 }
@@ -224,16 +236,16 @@ select {
   background: var(--color-sorted);
 }
 
-.bar.pivot {
-  background: var(--color-pivot);
-}
-
 .bar.compare {
   background: var(--color-compare);
 }
 
 .bar.swap {
   background: var(--color-swap);
+}
+
+.bar.pivot {
+  background: var(--color-pivot);
 }
 
 /* 현재 단계 설명 */
@@ -300,7 +312,8 @@ select {
 }
 
 /* 막대 그래프와 의사코드를 나란히 둔다 (좁은 화면에서는 아래 미디어 쿼리에서 한 줄로 바꾼다) */
-.sort-view {
+.sort-view,
+.graph-view {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;   /* 왼쪽 막대는 남는 폭을 모두, 오른쪽 의사코드는 260px */
   gap: 16px;
@@ -382,6 +395,96 @@ select {
   font-family: Consolas, monospace;
 }
 
+/* ===== 탐색 페이지 ===== */
+/* 격자: 칸 사이의 1px 틈으로 바탕색(테두리색)이 비쳐 보여서 칸 경계선이 된다.
+   열 수와 최대 너비는 graph.js가 정한다 (칸이 너무 커지지 않게) */
+.grid {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  background: var(--color-line);
+  border: 1px solid var(--color-line);
+
+  /* 격자 위에서 끌 때 화면이 스크롤되거나 글자가 선택되지 않게 한다 */
+  touch-action: none;
+  user-select: none;
+}
+
+/* 칸 하나: aspect-ratio로 정사각형을 유지한다 */
+.cell {
+  aspect-ratio: 1;
+  background: var(--color-cell);
+}
+
+.cell.wall {
+  background: var(--color-wall);
+}
+
+.cell.queued {
+  background: var(--color-queued);
+}
+
+.cell.visited {
+  background: var(--color-visited);
+}
+
+.cell.path {
+  background: var(--color-path);
+}
+
+.cell.start {
+  background: var(--color-start);
+}
+
+.cell.goal {
+  background: var(--color-goal);
+}
+
+.cell.current {
+  background: var(--color-current);
+}
+
+/* 끌어서 옮길 수 있는 칸 */
+.cell.start,
+.cell.goal {
+  cursor: grab;
+}
+
+.swatch.start {
+  background: var(--color-start);
+}
+
+.swatch.goal {
+  background: var(--color-goal);
+}
+
+.swatch.wall {
+  background: var(--color-wall);
+}
+
+.swatch.queued {
+  background: var(--color-queued);
+}
+
+.swatch.visited {
+  background: var(--color-visited);
+}
+
+.swatch.path {
+  background: var(--color-path);
+}
+
+.swatch.current {
+  background: var(--color-current);
+}
+
+/* 격자 위의 사용법 안내 */
+.hint {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--color-sub);
+}
+
 /* ===== 바닥글 ===== */
 footer {
   text-align: center;
@@ -409,7 +512,8 @@ footer {
   }
 
   /* 의사코드를 막대 아래로 내린다 */
-  .sort-view {
+  .sort-view,
+  .graph-view {
     grid-template-columns: 1fr;
   }
 }

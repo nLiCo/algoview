@@ -137,15 +137,15 @@
         <li><span class="swatch"></span>대기</li>
         <li><span class="swatch compare"></span>비교 중</li>
         <li><span class="swatch swap"></span>교환</li>
-        <!-- 퀵 정렬을 골랐을 때만 sort.js가 보이게 한다 -->
-        <li id="pivot-legend" hidden><span class="swatch pivot"></span>피벗 (기준값)</li>
-        <li id="quick-block-legend" hidden><span class="swatch group"></span>묶음 (아직 정렬 안 된 구간)</li>
-        <li id="quick-group-legend" hidden><span class="swatch group-left"></span><span class="swatch group-right"></span>피벗보다 작은 값 · 큰 값</li>
-        <!-- 병합 정렬을 골랐을 때만 sort.js가 보이게 한다 -->
-        <li id="block-legend" hidden><span class="swatch group"></span>묶음 (정렬된 작은 배열)</li>
-        <li id="group-legend" hidden><span class="swatch group-left"></span><span class="swatch group-right"></span>합치는 두 묶음 (왼쪽·오른쪽)</li>
-        <!-- 삽입·병합 정렬을 골랐을 때만 sort.js가 보이게 한다 -->
-        <li id="ordered-legend" hidden><span class="swatch ordered"></span>순서만 맞음 (자리 미확정)</li>
+        <!-- data-algos가 있는 항목은 거기 적힌 알고리즘을 골랐을 때만 sort.js가 보이게 한다 -->
+        <li data-algos="quick" hidden><span class="swatch pivot"></span>피벗 (기준값)</li>
+        <li data-algos="selection" hidden><span class="swatch pivot"></span>현재 최솟값 (지금까지 가장 작은 값)</li>
+        <li data-algos="insertion" hidden><span class="swatch pivot"></span>끼워 넣는 값</li>
+        <li data-algos="quick" hidden><span class="swatch group"></span>묶음 (아직 정렬 안 된 구간)</li>
+        <li data-algos="quick" hidden><span class="swatch group-left"></span><span class="swatch group-right"></span>피벗보다 작은 값 · 큰 값</li>
+        <li data-algos="merge" hidden><span class="swatch group"></span>묶음 (정렬된 작은 배열)</li>
+        <li data-algos="merge" hidden><span class="swatch group-left"></span><span class="swatch group-right"></span>합치는 두 묶음 (왼쪽·오른쪽)</li>
+        <li data-algos="insertion merge" hidden><span class="swatch ordered"></span>순서만 맞음 (자리 미확정)</li>
         <li><span class="swatch sorted"></span>자리 확정</li>
       </ul>
     </section>
@@ -155,7 +155,8 @@
     <p>웹프로그래밍 개인 프로젝트 · 2026</p>
   </footer>
 
-  <!-- HTML 요소가 다 만들어진 뒤에 실행되도록 body 맨 끝에 둔다 -->
+  <!-- HTML 요소가 다 만들어진 뒤에 실행되도록 body 맨 끝에 둔다. 공용 기능(common.js)을 페이지 스크립트보다 먼저 불러온다 -->
+  <script src="./js/common.js"></script>
   <script src="./js/sort.js"></script>
 </body>
 </html>

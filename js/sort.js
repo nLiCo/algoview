@@ -10,12 +10,7 @@ const SPEED_DELAYS = [1000, 500, 300, 150, 50];
 // 화면 요소
 const algoSelect = document.getElementById('algo-select');
 const algoTitle = document.getElementById('algo-title');
-const orderedLegend = document.getElementById('ordered-legend');
-const pivotLegend = document.getElementById('pivot-legend');
-const quickBlockLegend = document.getElementById('quick-block-legend');
-const quickGroupLegend = document.getElementById('quick-group-legend');
-const blockLegend = document.getElementById('block-legend');
-const groupLegend = document.getElementById('group-legend');
+const algoLegends = document.querySelectorAll('.legend li[data-algos]');   // 특정 알고리즘에서만 보이는 범례
 const sizeInput = document.getElementById('size-input');
 const randomBtn = document.getElementById('random-btn');
 const runBtn = document.getElementById('run-btn');
@@ -36,6 +31,15 @@ let steps = null;    // 정렬 제너레이터 (정렬 중이 아니면 null)
 let timer = null;    // 자동 실행 타이머 (자동 실행 중이 아니면 null)
 let compareCount = 0;   // 이번 정렬에서 비교한 횟수
 let swapCount = 0;      // 이번 정렬에서 교환한 횟수
+
+
+// ----- 공통 도우미 -----
+// 배열에서 a번과 b번 값을 맞바꾼다 (정렬과 무작위 섞기에서 같이 쓴다)
+function swapItems(arr, a, b) {
+  const temp = arr[a];
+  arr[a] = arr[b];
+  arr[b] = temp;
+}
 
 
 // ----- 버블 정렬 -----
@@ -76,9 +80,7 @@ function* bubbleSort(original) {
       };
 
       if (arr[j] > arr[j + 1]) {
-        const temp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = temp;
+        swapItems(arr, j, j + 1);
 
         yield {
           array: arr.slice(),
@@ -115,7 +117,8 @@ function* bubbleSort(original) {
 // ----- 선택 정렬 -----
 // 아직 정렬 안 된 부분에서 가장 작은 값을 찾아 맨 앞(i번)과 바꾼다.
 // 한 바퀴 돌 때마다 앞에서부터 한 칸씩 자리가 확정된다.
-// 비교 중 표시(compare)는 [지금까지의 최솟값 위치, 지금 보는 위치]
+// 비교 중 표시(compare)는 [지금까지의 최솟값 위치, 지금 보는 위치]이고,
+// 지금까지의 최솟값은 pivot(보라)으로도 표시한다 (비교·교환 색과 겹쳐도 보라가 우선한다)
 function* selectionSort(original) {
   const arr = original.slice();
   const n = arr.length;
@@ -134,6 +137,7 @@ function* selectionSort(original) {
       yield {
         array: arr.slice(),
         compare: [minIndex, j],
+        pivot: minIndex,
         sorted: sorted.slice(),
         lines: lines,
         vars: { n: n, i: i, j: j, minIndex: minIndex },
@@ -146,6 +150,7 @@ function* selectionSort(original) {
 
         yield {
           array: arr.slice(),
+          pivot: minIndex,
           sorted: sorted.slice(),
           lines: [5],
           vars: { n: n, i: i, j: j, minIndex: minIndex },
@@ -157,13 +162,12 @@ function* selectionSort(original) {
     // 최솟값이 이미 i번에 있으면 바꿀 필요가 없다
     const swapped = (minIndex !== i);
     if (swapped) {
-      const temp = arr[i];
-      arr[i] = arr[minIndex];
-      arr[minIndex] = temp;
+      swapItems(arr, i, minIndex);
 
       yield {
         array: arr.slice(),
         swap: [i, minIndex],
+        pivot: i,   // 최솟값은 교환으로 i번에 와 있다
         sorted: sorted.slice(),
         lines: [6, 7],
         vars: { n: n, i: i, minIndex: minIndex },
@@ -202,7 +206,7 @@ function* selectionSort(original) {
 // i번 값을 앞쪽(0 ~ i-1)의 정렬된 부분에 끼워 넣는다.
 // 앞의 값이 더 크면 한 칸씩 자리를 바꾸며 앞으로 옮기고, 앞의 값이 더 작아지면 멈춘다.
 // 앞쪽은 순서만 맞을 뿐 나중에 값이 끼어들 수 있으므로, 확정(sorted, 초록) 대신 ordered(연한 초록)로 표시한다.
-// 옮기고 있는 값은 항상 비교·교환 색으로 칠해지므로, 0 ~ i번 전체를 정렬된 앞부분으로 칠해도 된다.
+// 옮기고 있는 값은 항상 pivot(보라)으로 칠해지므로, 0 ~ i번 전체를 정렬된 앞부분으로 칠해도 된다.
 function* insertionSort(original) {
   const arr = original.slice();
   const n = arr.length;
@@ -223,6 +227,7 @@ function* insertionSort(original) {
       yield {
         array: arr.slice(),
         compare: [j - 1, j],
+        pivot: j,
         ordered: ordered.slice(),
         lines: lines,
         vars: { n: n, i: i, j: j },
@@ -232,14 +237,13 @@ function* insertionSort(original) {
       if (arr[j - 1] > arr[j]) {
         // 앞의 값과 바꾸고 j를 1 줄인다 (5·6번 줄)
         // 보여 주는 j는 줄인 뒤의 값이므로, 방금 바꾼 두 칸은 j번과 j+1번이다
-        const temp = arr[j - 1];
-        arr[j - 1] = arr[j];
-        arr[j] = temp;
+        swapItems(arr, j - 1, j);
         j--;
 
         yield {
           array: arr.slice(),
           swap: [j, j + 1],
+          pivot: j,
           ordered: ordered.slice(),
           lines: [5, 6],
           vars: { n: n, i: i, j: j },
@@ -249,6 +253,7 @@ function* insertionSort(original) {
         // 앞의 값이 더 작으면 제자리를 찾은 것 (7번 줄)
         yield {
           array: arr.slice(),
+          pivot: j,
           ordered: ordered.slice(),
           lines: [7],
           vars: { n: n, i: i, j: j },
@@ -501,9 +506,7 @@ function* partition(arr, low, high, sorted) {
       // 피벗보다 작은 값은 앞쪽(i번)으로 보내고 i를 1 늘린다 (11·12번 줄)
       // 보여 주는 i는 늘린 뒤의 값이므로, 방금 값을 넣은 칸은 i-1번이다
       if (i !== j) {
-        const temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
+        swapItems(arr, i, j);
         i++;
 
         yield {
@@ -540,13 +543,12 @@ function* partition(arr, low, high, sorted) {
   // 작은 값들 바로 뒤(i번)에 피벗을 넣는다. 피벗이 이미 i번에 있으면 바꿀 필요가 없다
   const pivotMoved = (i !== high);
   if (pivotMoved) {
-    const temp = arr[i];
-    arr[i] = arr[high];
-    arr[high] = temp;
+    swapItems(arr, i, high);
 
     yield {
       array: arr.slice(),
       swap: [i, high],
+      pivot: i,   // 피벗은 교환으로 i번에 와 있다
       sorted: sorted.slice(),
       blockStart: makeQuickBlockStart(sorted),
       leftGroup: [low, i - 1],
@@ -582,7 +584,7 @@ function* partition(arr, low, high, sorted) {
 
 // ----- 막대 그리기 -----
 // state는 정렬 함수가 yield한 상태와 같은 모양이다
-// 막대마다 칸(slot)을 하나씩 만들고 그 안에 막대를 넣는다. 칸의 배경색으로 병합 정렬의 묶음을 보여 준다
+// 막대마다 칸(slot)을 하나씩 만들고 그 안에 막대를 넣는다. 칸의 배경색으로 병합·퀵 정렬의 묶음을 보여 준다
 // (묶음은 회색, 병합 정렬에서 합치는 두 묶음 / 퀵 정렬에서 피벗보다 작은·큰 값은 파랑·주황)
 function renderBars(state) {
   barsBox.innerHTML = '';   // 기존 막대를 모두 지우고 새로 그린다
@@ -637,65 +639,7 @@ function renderBars(state) {
 
 
 // ----- 의사코드 -----
-// 고른 알고리즘의 의사코드 목록만 보이게 한다
-function showPseudocode() {
-  for (const list of codeLists) {
-    list.hidden = (list.dataset.algo !== algoSelect.value);
-  }
-  highlightLines([]);
-  showVars(null);
-}
-
-// 변수 값을 "n = 10 · i = 2 · j = 5" 모양으로 보여 준다. vars가 없으면 비운다
-function showVars(vars) {
-  const parts = [];
-  if (vars) {
-    for (const name in vars) {
-      parts.push(name + ' = ' + vars[name]);
-    }
-  }
-  codeVars.textContent = parts.join(' · ');
-}
-
-// 보이는 의사코드에서 lines에 든 줄(1부터)을 모두 강조한다. 빈 목록이면 강조를 모두 지운다
-function highlightLines(lines) {
-  let lastItem = null;   // 강조한 줄 중 마지막 줄 (지금 하는 일에 가장 가까운 줄)
-  for (const list of codeLists) {
-    const items = list.querySelectorAll('li');
-    for (let i = 0; i < items.length; i++) {
-      if (!list.hidden && lines.includes(i + 1)) {
-        items[i].classList.add('current');
-        lastItem = items[i];
-      } else {
-        items[i].classList.remove('current');
-      }
-    }
-  }
-  scrollToLine(lastItem);
-}
-
-// 줄이 코드 영역에서 다 보이지 않을 때만, 그 줄이 가운데쯤 오도록 코드 영역만 스크롤한다
-// (이미 보이는 줄이면 그대로 둔다. 페이지 전체는 움직이지 않는다)
-// 줄이 없으면 맨 위로 돌린다
-function scrollToLine(item) {
-  if (item === null) {
-    codeScroll.scrollTop = 0;
-    return;
-  }
-
-  // 지금 코드 영역에 보이는 범위
-  const viewTop = codeScroll.scrollTop;
-  const viewBottom = codeScroll.scrollTop + codeScroll.clientHeight;
-  const itemTop = item.offsetTop;
-  const itemBottom = item.offsetTop + item.offsetHeight;
-  if (itemTop >= viewTop && itemBottom <= viewBottom) {
-    return;   // 이미 잘 보인다
-  }
-
-  // 줄의 위쪽 위치에서 (영역 높이 - 줄 높이)의 절반만큼 빼면 줄이 가운데에 온다
-  const top = item.offsetTop - (codeScroll.clientHeight - item.offsetHeight) / 2;
-  codeScroll.scrollTo({ top: top, behavior: 'smooth' });
-}
+// showPseudocode(), showVars(), highlightLines(), scrollToLine()은 common.js에 있다
 
 
 // ----- 비교·교환 횟수 -----
@@ -713,10 +657,10 @@ function resetCounts() {
 
 
 // ----- 배열 만들기 -----
-// 입력값이 범위를 벗어나면 5~50 안으로 맞춰 준다
+// 입력값이 범위를 벗어나면 5~50 안으로 맞춰 준다. 소수(예: 7.5)는 반올림한다
 function readSize() {
-  let size = Number(sizeInput.value);
-  if (!Number.isInteger(size) || size < MIN_SIZE) {
+  let size = Math.round(Number(sizeInput.value));
+  if (Number.isNaN(size) || size < MIN_SIZE) {
     size = MIN_SIZE;
   }
   if (size > MAX_SIZE) {
@@ -734,17 +678,14 @@ function makeRandomArray(size) {
   }
   for (let i = size - 1; i > 0; i--) {
     const randomNumber = Math.floor(Math.random() * (i + 1));
-    const temp = arr[i];
-    arr[i] = arr[randomNumber];
-    arr[randomNumber] = temp;
+    swapItems(arr, i, randomNumber);
   }
   return arr;
 }
 
-function resetArray() {
-  const size = readSize();
-  numbers = makeRandomArray(size);
-  steps = null;   // 새 배열이므로 진행 중이던 정렬은 버린다
+// 진행 중이던 정렬을 버리고, 지금 배열을 색·강조·횟수 없이 처음 상태로 다시 보여 준다
+function clearProgress() {
+  steps = null;
   runBtn.textContent = '실행';
   resetCounts();
   renderBars({ array: numbers });
@@ -753,26 +694,23 @@ function resetArray() {
   message.textContent = '실행 또는 한 단계를 눌러 보세요.';
 }
 
-// 알고리즘을 바꾸면 진행 중이던 단계는 버리고 지금 배열을 색 없이 다시 보여 준다
+// 새 배열을 만든다. 새 배열이므로 진행 중이던 정렬은 버린다
+function resetArray() {
+  const size = readSize();
+  numbers = makeRandomArray(size);
+  clearProgress();
+}
+
+// 알고리즘을 바꾸면 제목·범례·의사코드를 그 알고리즘에 맞추고, 진행 중이던 단계는 버린다
 function changeAlgorithm() {
   algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
-  // "순서만 맞음" 색은 삽입·병합 정렬에서만, 피벗 색은 퀵 정렬에서만, 묶음 색은 병합 정렬에서만 쓰므로 그때만 범례에 보인다
-  if (algoSelect.value === 'insertion' || algoSelect.value === 'merge') {
-    orderedLegend.hidden = false;
-  } else {
-    orderedLegend.hidden = true;
+  // 범례 중 data-algos가 있는 것은 거기 적힌 알고리즘(공백으로 구분)을 골랐을 때만 보인다
+  for (const item of algoLegends) {
+    const algos = item.dataset.algos.split(' ');
+    item.hidden = !algos.includes(algoSelect.value);
   }
-  pivotLegend.hidden = (algoSelect.value !== 'quick');
-  quickBlockLegend.hidden = (algoSelect.value !== 'quick');
-  quickGroupLegend.hidden = (algoSelect.value !== 'quick');
-  blockLegend.hidden = (algoSelect.value !== 'merge');
-  groupLegend.hidden = (algoSelect.value !== 'merge');
   showPseudocode();
-  steps = null;
-  runBtn.textContent = '실행';
-  resetCounts();
-  renderBars({ array: numbers });
-  message.textContent = '실행 또는 한 단계를 눌러 보세요.';
+  clearProgress();
 }
 
 
@@ -788,21 +726,7 @@ function setRunning(running) {
   pauseBtn.disabled = !running;
 }
 
-// 속도 입력값(1~5)에 맞는 간격(ms)
-function getDelay() {
-  return SPEED_DELAYS[Number(speedInput.value) - 1];
-}
-
-// 자동 실행 타이머를 지금 속도로 시작한다
-function startTimer() {
-  timer = setInterval(doStep, getDelay());
-}
-
-// 타이머만 멈춘다. 제너레이터(steps)는 그대로 두므로 실행·한 단계로 이어서 진행할 수 있다
-function stopTimer() {
-  clearInterval(timer);
-  timer = null;
-}
+// getDelay(), startTimer(), stopTimer(), finish()는 common.js에 있다
 
 // 정렬 중이 아니면 고른 알고리즘으로 새 제너레이터를 만든다
 function prepareSteps() {
@@ -854,13 +778,6 @@ function doStep() {
   if (state.done) {
     finish();
   }
-}
-
-function finish() {
-  stopTimer();
-  steps = null;
-  runBtn.textContent = '실행';
-  setRunning(false);
 }
 
 
