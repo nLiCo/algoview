@@ -292,63 +292,7 @@ function applySize() {
 
 
 // ----- 의사코드 -----
-// 의사코드 목록 중 고른 알고리즘의 것만 보이게 한다
-function showPseudocode() {
-  for (const list of codeLists) {
-    list.hidden = (list.dataset.algo !== algoSelect.value);
-  }
-}
-
-// 변수 값을 "현재 칸 = (3, 5) · 큐 크기 = 4" 모양으로 보여 준다. vars가 없으면 비운다
-function showVars(vars) {
-  const parts = [];
-  if (vars) {
-    for (const name in vars) {
-      parts.push(name + ' = ' + vars[name]);
-    }
-  }
-  codeVars.textContent = parts.join(' · ');
-}
-
-// 보이는 의사코드에서 lines에 든 줄(1부터)을 모두 강조한다. 빈 목록이면 강조를 모두 지운다
-function highlightLines(lines) {
-  let lastItem = null;   // 강조한 줄 중 마지막 줄 (지금 하는 일에 가장 가까운 줄)
-  for (const list of codeLists) {
-    const items = list.querySelectorAll('li');
-    for (let i = 0; i < items.length; i++) {
-      if (!list.hidden && lines.includes(i + 1)) {
-        items[i].classList.add('current');
-        lastItem = items[i];
-      } else {
-        items[i].classList.remove('current');
-      }
-    }
-  }
-  scrollToLine(lastItem);
-}
-
-// 줄이 코드 영역에서 다 보이지 않을 때만, 그 줄이 가운데쯤 오도록 코드 영역만 스크롤한다
-// (이미 보이는 줄이면 그대로 둔다. 페이지 전체는 움직이지 않는다)
-// 줄이 없으면 맨 위로 돌린다
-function scrollToLine(item) {
-  if (item === null) {
-    codeScroll.scrollTop = 0;
-    return;
-  }
-
-  // 지금 코드 영역에 보이는 범위
-  const viewTop = codeScroll.scrollTop;
-  const viewBottom = codeScroll.scrollTop + codeScroll.clientHeight;
-  const itemTop = item.offsetTop;
-  const itemBottom = item.offsetTop + item.offsetHeight;
-  if (itemTop >= viewTop && itemBottom <= viewBottom) {
-    return;   // 이미 잘 보인다
-  }
-
-  // 줄의 위쪽 위치에서 (영역 높이 - 줄 높이)의 절반만큼 빼면 줄이 가운데에 온다
-  const top = item.offsetTop - (codeScroll.clientHeight - item.offsetHeight) / 2;
-  codeScroll.scrollTo({ top: top, behavior: 'smooth' });
-}
+// showPseudocode(), showVars(), highlightLines(), scrollToLine()은 common.js에 있다
 
 
 // ----- 너비 우선 탐색 (BFS) -----
@@ -708,21 +652,7 @@ function setRunning(running) {
   pauseBtn.disabled = !running;
 }
 
-// 속도 입력값(1~5)에 맞는 간격(ms)
-function getDelay() {
-  return SPEED_DELAYS[Number(speedInput.value) - 1];
-}
-
-// 자동 실행 타이머를 지금 속도로 시작한다
-function startTimer() {
-  timer = setInterval(doStep, getDelay());
-}
-
-// 타이머만 멈춘다. 제너레이터(steps)는 그대로 두므로 실행·한 단계로 이어서 진행할 수 있다
-function stopTimer() {
-  clearInterval(timer);
-  timer = null;
-}
+// getDelay(), startTimer(), stopTimer(), finish()는 common.js에 있다
 
 // 탐색 중이 아니면 이전 표시를 지우고, 고른 알고리즘의 새 제너레이터를 만든다 (끝난 뒤 다시 실행할 때도 여기로 온다)
 function prepareSteps() {
@@ -751,13 +681,6 @@ function doStep() {
   if (state.done) {
     finish();
   }
-}
-
-function finish() {
-  stopTimer();
-  steps = null;
-  runBtn.textContent = '실행';
-  setRunning(false);
 }
 
 
