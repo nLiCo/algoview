@@ -406,11 +406,12 @@ function* bfs(walls, start, goal) {
   while (queue.length > 0) {
     const current = queue.shift();
     visitCount++;
-    const lines = firstStep ? [1, 2, 3, 4] : [2, 3, 4];
+    const lines = firstStep ? [1, 2, 3] : [2, 3];
     firstStep = false;
 
-    // 도착점에서 꺼냈으면 탐색 성공: 이제 경로를 찾아 칠한다
+    // 도착점에서 꺼냈으면 탐색 성공: 이제 경로를 찾아 칠한다 (4번 줄은 이때만 실행된 줄이다)
     if (current.row === goal.row && current.col === goal.col) {
+      lines.push(4);
       yield {
         current: current,
         added: [],
@@ -431,7 +432,9 @@ function* bfs(walls, start, goal) {
     }
 
     // 위·오른쪽·아래·왼쪽 이웃 중 벽도 아니고 방문 표시도 없는 칸만 큐에 넣는다
-    lines.push(5, 6);
+    // (6번 줄은 벽이거나 방문 표시된 칸을 실제로 건너뛴 단계에서만, 7번 줄은 큐에 넣은 칸이 있는 단계에서만 실행된 줄이다)
+    lines.push(5);
+    let skipped = false;   // 이번 단계에서 벽이거나 방문 표시된 이웃을 건너뛰었는가
     const added = [];
     for (const [dr, dc] of DIRECTIONS) {
       const r = current.row + dr;
@@ -440,6 +443,7 @@ function* bfs(walls, start, goal) {
         continue;
       }
       if (walls[r][c] || visited[r][c]) {
+        skipped = true;
         continue;
       }
       visited[r][c] = true;
@@ -447,6 +451,9 @@ function* bfs(walls, start, goal) {
       const next = { row: r, col: c };
       queue.push(next);
       added.push(next);
+    }
+    if (skipped) {
+      lines.push(6);
     }
     if (added.length > 0) {
       lines.push(7);
