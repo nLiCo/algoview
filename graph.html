@@ -20,9 +20,16 @@
   <main>
     <h2>탐색 시각화</h2>
 
-    <!-- 조작 버튼: 크기 입력(적용하면 격자를 새로 만들고 벽도 지운다), 무작위 벽, 벽 모두 지우기, 탐색 실행·일시정지·한 단계·속도.
-         실행 중에는 graph.js가 일시정지·속도를 뺀 버튼과 입력칸을 비활성화한다 -->
+    <!-- 조작 버튼: 알고리즘 선택, 크기 입력(적용하면 격자를 새로 만들고 벽도 지운다), 무작위 벽, 벽 모두 지우기,
+         탐색 실행·일시정지·한 단계·속도. 실행 중에는 graph.js가 일시정지·속도를 뺀 버튼과 입력칸을 비활성화한다 -->
     <section class="controls">
+      <label>
+        알고리즘
+        <select id="algo-select">
+          <option value="bfs">너비 우선 탐색 (BFS)</option>
+          <option value="dfs">깊이 우선 탐색 (DFS)</option>
+        </select>
+      </label>
       <label>
         행 (5~20)
         <input type="number" id="rows-input" min="5" max="20" value="15">
@@ -45,7 +52,7 @@
 
     <!-- 격자: 칸(div)은 graph.js가 만든다 -->
     <section>
-      <h3>너비 우선 탐색 (BFS)</h3>
+      <h3 id="algo-title">너비 우선 탐색 (BFS)</h3>
       <p class="hint">빈 칸을 끌면 벽을 그리고, 벽을 끌면 지웁니다. 시작·도착 칸은 끌어서 옮길 수 있습니다.</p>
 
       <!-- 넓은 화면에서는 격자 오른쪽에, 좁은 화면에서는 격자 아래에 의사코드가 온다 -->
@@ -69,6 +76,21 @@
               <li><code>  경로를 시작점부터 한 칸씩 칠함</code></li>
               <li><code>아니면 도착점에 갈 수 없음</code></li>
             </ol>
+            <ol class="code" data-algo="dfs" hidden>
+              <li><code>시작 칸을 스택에 넣음</code></li>
+              <li><code>스택이 빌 때까지 반복</code></li>
+              <li><code>  스택 맨 위에서 칸을 꺼냄 (현재 칸)</code></li>
+              <li><code>  이미 방문한 칸이면 건너뜀</code></li>
+              <li><code>  현재 칸을 방문 표시</code></li>
+              <li><code>  현재 칸이 도착점이면 반복 멈춤</code></li>
+              <li><code>  위·오른쪽·아래·왼쪽 이웃마다</code></li>
+              <li><code>    벽이거나 방문한 칸이면 건너뜀</code></li>
+              <li><code>    이전 칸 기록, 스택에 넣음</code></li>
+              <li><code>도착점에 도착했으면</code></li>
+              <li><code>  이전 칸을 따라 거슬러 올라가 경로 만듦</code></li>
+              <li><code>  경로를 시작점부터 한 칸씩 칠함</code></li>
+              <li><code>아니면 도착점에 갈 수 없음</code></li>
+            </ol>
           </div>
           <!-- 지금 단계의 변수 값 (예: 현재 칸 = (3, 5) · 큐 크기 = 4) -->
           <p id="code-vars" class="code-vars"></p>
@@ -78,13 +100,16 @@
       <p id="message" class="message"></p>
       <!-- 지금까지 꺼내 처리한 칸 수와 찾은 경로의 칸 수: graph.js가 한 단계마다 갱신한다 -->
       <p>방문한 칸 <span id="visit-count">0</span>칸 · 경로 길이 <span id="path-length">-</span></p>
+      <!-- data-algos가 있는 항목은 거기 적힌 알고리즘을 골랐을 때만 graph.js가 보이게 한다 -->
+      <p class="hint" data-algos="dfs" hidden>※ DFS가 찾은 경로는 가장 짧은 경로가 아닐 수 있습니다. BFS와 경로 길이를 비교해 보세요.</p>
 
       <!-- 칸 색의 의미 -->
       <ul class="legend">
         <li><span class="swatch start"></span>시작</li>
         <li><span class="swatch goal"></span>도착</li>
         <li><span class="swatch wall"></span>벽</li>
-        <li><span class="swatch queued"></span>대기 중 (큐 안)</li>
+        <li data-algos="bfs"><span class="swatch queued"></span>대기 중 (큐 안)</li>
+        <li data-algos="dfs" hidden><span class="swatch queued"></span>대기 중 (스택 안)</li>
         <li><span class="swatch current"></span>현재 칸</li>
         <li><span class="swatch visited"></span>방문 완료 (꺼낸 칸)</li>
         <li><span class="swatch path"></span>최종 경로</li>

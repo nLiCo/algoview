@@ -1,5 +1,5 @@
 // ===== 탐색 시각화 (graph.html) =====
-// 격자 만들기·크기 입력, 벽·시작·도착 편집, BFS 단계 실행과 경로 표시. DFS는 이후 단계에서 추가한다.
+// 격자 만들기·크기 입력, 벽·시작·도착 편집, BFS·DFS 단계 실행과 경로 표시.
 
 // ----- 설정 -----
 const MIN_SIZE = 5;
@@ -15,6 +15,9 @@ const SPEED_DELAYS = [500, 200, 100, 50, 20];   // 속도 1~5에 해당하는 �
 const DIRECTIONS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
 
 // ----- 화면 요소 -----
+const algoSelect = document.getElementById('algo-select');
+const algoTitle = document.getElementById('algo-title');
+const algoItems = document.querySelectorAll('[data-algos]');   // 특정 알고리즘에서만 보이는 범례·안내
 const rowsInput = document.getElementById('rows-input');
 const colsInput = document.getElementById('cols-input');
 const applyBtn = document.getElementById('apply-btn');
@@ -42,7 +45,7 @@ let startPos = null;       // 시작점 { row, col }
 let goalPos = null;        // 도착점 { row, col }
 let dragMode = null;       // 끌고 있는 동작: 'draw'(벽 그리기) 'erase'(벽 지우기) 'start' 'goal' (끌고 있지 않으면 null)
 let lastPos = null;        // 끌다가 마지막으로 처리한 칸 (같은 칸을 또 처리하지 않으려고)
-let steps = null;          // BFS 제너레이터 (탐색 중이 아니면 null)
+let steps = null;          // 탐색(BFS 또는 DFS) 제너레이터 (탐색 중이 아니면 null)
 let timer = null;          // 자동 실행 타이머 (자동 실행 중이 아니면 null)
 let isRunning = false;     // 자동 실행 중인가 (실행 중에는 격자를 편집할 수 없다)
 let currentPos = null;     // 지금 "현재 칸"으로 칠해 둔 칸 { row, col }
@@ -289,6 +292,13 @@ function applySize() {
 
 
 // ----- 의사코드 -----
+// 의사코드 목록 중 고른 알고리즘의 것만 보이게 한다
+function showPseudocode() {
+  for (const list of codeLists) {
+    list.hidden = (list.dataset.algo !== algoSelect.value);
+  }
+}
+
 // 변수 값을 "현재 칸 = (3, 5) · 큐 크기 = 4" 모양으로 보여 준다. vars가 없으면 비운다
 function showVars(vars) {
   const parts = [];
@@ -348,7 +358,7 @@ function positionText(pos) {
 }
 
 // 도착점에서 prev를 따라 시작점까지 거슬러 올라가 경로를 만든 뒤, 시작점부터 한 칸씩 칠하는 단계들을 배열로 돌려준다
-// (BFS와 이후 DFS가 함께 쓴다)
+// (BFS와 DFS가 함께 쓴다)
 // firstLines: 첫 칸을 칠하는 단계에서 실행된 의사코드 줄, nextLines: 그 뒤 단계들에서 실행된 줄
 function makePathStates(goal, prev, visitCount, firstLines, nextLines) {
   const path = [];
@@ -492,6 +502,127 @@ function* bfs(walls, start, goal) {
   };
 }
 
+// DFS 제너레이터: BFS와 같은 틀이고, 큐 대신 스택을 쓴다 (shift 대신 pop)
+// 방문 표시는 BFS와 달리 스택에서 꺼낼 때 한다. 그래서 같은 칸이 스택에 여러 번 들어 있을 수 있고,
+// 이미 방문한 칸을 꺼내면 한 단계로 세지 않고 조용히 건너뛴다 (한 단계 = 새로 방문한 칸 하나)
+// 내보내는 상태는 bfs와 같다
+function* dfs(walls, start, goal) {
+  const rowCount = walls.length;
+  const colCount = walls[0].length;
+
+  // visited[행][열]: 스택에서 꺼내 방문한 칸
+  const visited = [];
+  const prev = [];
+  for (let r = 0; r < rowCount; r++) {
+    visited.push(new Array(colCount).fill(false));
+    prev.push(new Array(colCount).fill(null));
+  }
+
+  const stack = [start];
+  let visitCount = 0;     // 지금까지 새로 방문한 칸 수
+  let firstStep = true;   // 첫 단계에는 1번 줄(시작 칸 넣기)도 함께 실행된 것으로 본다
+  let skippedDuplicate = false;   // 이번 단계 전에 이미 방문한 칸을 건너뛰었는가 (4번 줄)
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (visited[current.row][current.col]) {
+      skippedDuplicate = true;
+      continue;   // 이미 방문한 칸이 중복으로 남아 있던 것: 건너뛴다
+    }
+    visited[current.row][current.col] = true;
+    visitCount++;
+    const lines = firstStep ? [1, 2, 3] : [2, 3];
+    if (skippedDuplicate) {
+      lines.push(4);   // 4번 줄은 중복 항목을 실제로 건너뛴 단계에서만 실행된 줄이다
+    }
+    lines.push(5);
+    firstStep = false;
+    skippedDuplicate = false;
+
+    // 도착점에서 꺼냈으면 탐색 성공: 이제 경로를 찾아 칠한다 (6번 줄은 이때만 실행된 줄이다)
+    if (current.row === goal.row && current.col === goal.col) {
+      lines.push(6);
+      yield {
+        current: current,
+        added: [],
+        pathCell: null,
+        visitCount: visitCount,
+        pathLength: null,
+        lines: lines,
+        vars: { '현재 칸': positionText(current), '스택 크기': stack.length },
+        message: positionText(current) + ' 칸을 꺼냈습니다. 도착점입니다! 이전 칸을 따라 거슬러 올라가 경로를 찾습니다.',
+        done: false
+      };
+
+      // 도착점에서 시작점까지 경로를 만들어, 시작점부터 한 칸씩 칠하는 단계를 이어서 내보낸다
+      for (const state of makePathStates(goal, prev, visitCount, [10, 11, 12], [12])) {
+        yield state;
+      }
+      return;
+    }
+
+    // 위·오른쪽·아래·왼쪽 이웃 중 벽도 아니고 방문한 적도 없는 칸을 스택에 넣는다
+    // (아직 방문 표시는 하지 않으므로, 이미 스택에 있는 칸이 한 번 더 들어갈 수 있다)
+    // prev는 넣을 때 기록한다. 같은 칸을 또 넣으면 나중에 넣은 칸으로 바뀌는데, 그 칸이 먼저 꺼내지므로 맞다
+    // (8번 줄은 벽이거나 방문한 칸을 실제로 건너뛴 단계에서만, 9번 줄은 스택에 넣은 칸이 있는 단계에서만 실행된 줄이다)
+    lines.push(7);
+    let skipped = false;   // 이번 단계에서 벽이거나 방문한 이웃을 건너뛰었는가
+    const added = [];
+    for (const [dr, dc] of DIRECTIONS) {
+      const r = current.row + dr;
+      const c = current.col + dc;
+      if (r < 0 || r >= rowCount || c < 0 || c >= colCount) {
+        continue;
+      }
+      if (walls[r][c] || visited[r][c]) {
+        skipped = true;
+        continue;
+      }
+      prev[r][c] = current;
+      const next = { row: r, col: c };
+      stack.push(next);
+      added.push(next);
+    }
+    if (skipped) {
+      lines.push(8);
+    }
+    if (added.length > 0) {
+      lines.push(9);
+    }
+
+    let message = positionText(current) + ' 칸을 꺼냈습니다. ';
+    if (added.length > 0) {
+      message += '이웃 ' + added.length + '칸을 스택 위에 넣었습니다.';
+    } else {
+      message += '새로 넣을 이웃이 없습니다.';
+    }
+    yield {
+      current: current,
+      added: added,
+      pathCell: null,
+      visitCount: visitCount,
+      pathLength: null,
+      lines: lines,
+      vars: { '현재 칸': positionText(current), '스택 크기': stack.length },
+      message: message,
+      done: false
+    };
+  }
+
+  // 스택이 비도록 도착점을 못 찾았다
+  yield {
+    current: null,
+    added: [],
+    pathCell: null,
+    visitCount: visitCount,
+    pathLength: 0,
+    lines: skippedDuplicate ? [2, 4, 13] : [2, 13],
+    vars: { '스택 크기': 0 },
+    message: '스택이 비었습니다. 도착점에 갈 수 없습니다.',
+    done: true
+  };
+}
+
 // 한 단계의 결과를 격자에 반영한다: 이전 현재 칸은 방문 완료로, 새로 넣은 칸은 대기 중으로,
 // 꺼낸 칸은 현재 칸으로, 경로로 칠할 칸은 경로로 칠한다
 function showSearchState(state) {
@@ -548,11 +679,25 @@ function clearSearch() {
 }
 
 
+// 알고리즘을 바꾸면 제목·범례·안내·의사코드를 그 알고리즘에 맞추고, 진행 중이던 탐색 표시는 지운다 (벽은 그대로)
+function changeAlgorithm() {
+  algoTitle.textContent = algoSelect.options[algoSelect.selectedIndex].text;
+  // data-algos가 있는 항목은 거기 적힌 알고리즘(공백으로 구분)을 골랐을 때만 보인다
+  for (const item of algoItems) {
+    const algos = item.dataset.algos.split(' ');
+    item.hidden = !algos.includes(algoSelect.value);
+  }
+  showPseudocode();
+  clearSearch();
+}
+
+
 // ----- 단계 실행 -----
 // 실행 중에는 입력 관련 버튼을 모두 막고, 일시정지 버튼만 켠다
 // (속도 조절은 실행 중에도 바꿀 수 있게 막지 않는다. 격자 편집은 pointerdown에서 isRunning을 보고 막는다)
 function setRunning(running) {
   isRunning = running;
+  algoSelect.disabled = running;
   rowsInput.disabled = running;
   colsInput.disabled = running;
   applyBtn.disabled = running;
@@ -579,13 +724,17 @@ function stopTimer() {
   timer = null;
 }
 
-// 탐색 중이 아니면 이전 표시를 지우고 새 제너레이터를 만든다 (끝난 뒤 다시 실행할 때도 여기로 온다)
+// 탐색 중이 아니면 이전 표시를 지우고, 고른 알고리즘의 새 제너레이터를 만든다 (끝난 뒤 다시 실행할 때도 여기로 온다)
 function prepareSteps() {
   if (steps !== null) {
     return;
   }
   clearSearch();
-  steps = bfs(walls, startPos, goalPos);
+  if (algoSelect.value === 'dfs') {
+    steps = dfs(walls, startPos, goalPos);
+  } else {
+    steps = bfs(walls, startPos, goalPos);
+  }
 }
 
 // 제너레이터에서 다음 상태를 하나 꺼내 화면에 반영한다
@@ -616,6 +765,12 @@ function finish() {
 applyBtn.addEventListener('click', applySize);
 randomBtn.addEventListener('click', makeRandomWalls);
 clearBtn.addEventListener('click', clearWalls);
+
+// 알고리즘을 바꾸면 이전 탐색 표시를 지우고 제목·범례·의사코드를 바꾼다
+algoSelect.addEventListener('change', function () {
+  changeAlgorithm();
+  message.textContent = '알고리즘을 바꿨습니다. 실행을 눌러 탐색해 보세요.';
+});
 
 // 처음 실행이면 새로 시작하고, 일시정지 후라면 멈춘 곳부터 이어서 진행한다
 runBtn.addEventListener('click', function () {
@@ -651,3 +806,5 @@ stepBtn.addEventListener('click', function () {
 
 // 처음 페이지를 열었을 때 격자 하나를 만들어 둔다
 applySize();
+// 새로고침하면 브라우저가 선택 칸 값을 기억할 수 있으므로 제목·범례·의사코드를 그 값에 맞춘다
+changeAlgorithm();
