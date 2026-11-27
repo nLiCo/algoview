@@ -225,7 +225,9 @@ select {
   border-radius: 3px 3px 0 0;
 }
 
-/* 비교·교환 색이 이 색보다 우선하도록 앞쪽에 둔다 */
+/* 뒤에 있는 규칙이 앞의 규칙을 덮는다: 순서 맞음·자리 확정 < 비교 < 교환 < 기준 막대(보라)
+   기준 막대(퀵 정렬의 피벗, 선택 정렬의 현재 최솟값, 삽입 정렬의 끼워 넣는 값)는
+   비교·교환 대상과 겹쳐도 항상 보라색으로 보인다 */
 .bar.ordered {
   background: var(--color-ordered);
 }
@@ -234,16 +236,16 @@ select {
   background: var(--color-sorted);
 }
 
-.bar.pivot {
-  background: var(--color-pivot);
-}
-
 .bar.compare {
   background: var(--color-compare);
 }
 
 .bar.swap {
   background: var(--color-swap);
+}
+
+.bar.pivot {
+  background: var(--color-pivot);
 }
 
 /* 현재 단계 설명 */

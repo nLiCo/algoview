@@ -117,7 +117,8 @@ function* bubbleSort(original) {
 // ----- 선택 정렬 -----
 // 아직 정렬 안 된 부분에서 가장 작은 값을 찾아 맨 앞(i번)과 바꾼다.
 // 한 바퀴 돌 때마다 앞에서부터 한 칸씩 자리가 확정된다.
-// 비교 중 표시(compare)는 [지금까지의 최솟값 위치, 지금 보는 위치]
+// 비교 중 표시(compare)는 [지금까지의 최솟값 위치, 지금 보는 위치]이고,
+// 지금까지의 최솟값은 pivot(보라)으로도 표시한다 (비교·교환 색과 겹쳐도 보라가 우선한다)
 function* selectionSort(original) {
   const arr = original.slice();
   const n = arr.length;
@@ -136,6 +137,7 @@ function* selectionSort(original) {
       yield {
         array: arr.slice(),
         compare: [minIndex, j],
+        pivot: minIndex,
         sorted: sorted.slice(),
         lines: lines,
         vars: { n: n, i: i, j: j, minIndex: minIndex },
@@ -148,6 +150,7 @@ function* selectionSort(original) {
 
         yield {
           array: arr.slice(),
+          pivot: minIndex,
           sorted: sorted.slice(),
           lines: [5],
           vars: { n: n, i: i, j: j, minIndex: minIndex },
@@ -164,6 +167,7 @@ function* selectionSort(original) {
       yield {
         array: arr.slice(),
         swap: [i, minIndex],
+        pivot: i,   // 최솟값은 교환으로 i번에 와 있다
         sorted: sorted.slice(),
         lines: [6, 7],
         vars: { n: n, i: i, minIndex: minIndex },
@@ -202,7 +206,7 @@ function* selectionSort(original) {
 // i번 값을 앞쪽(0 ~ i-1)의 정렬된 부분에 끼워 넣는다.
 // 앞의 값이 더 크면 한 칸씩 자리를 바꾸며 앞으로 옮기고, 앞의 값이 더 작아지면 멈춘다.
 // 앞쪽은 순서만 맞을 뿐 나중에 값이 끼어들 수 있으므로, 확정(sorted, 초록) 대신 ordered(연한 초록)로 표시한다.
-// 옮기고 있는 값은 항상 비교·교환 색으로 칠해지므로, 0 ~ i번 전체를 정렬된 앞부분으로 칠해도 된다.
+// 옮기고 있는 값은 항상 pivot(보라)으로 칠해지므로, 0 ~ i번 전체를 정렬된 앞부분으로 칠해도 된다.
 function* insertionSort(original) {
   const arr = original.slice();
   const n = arr.length;
@@ -223,6 +227,7 @@ function* insertionSort(original) {
       yield {
         array: arr.slice(),
         compare: [j - 1, j],
+        pivot: j,
         ordered: ordered.slice(),
         lines: lines,
         vars: { n: n, i: i, j: j },
@@ -238,6 +243,7 @@ function* insertionSort(original) {
         yield {
           array: arr.slice(),
           swap: [j, j + 1],
+          pivot: j,
           ordered: ordered.slice(),
           lines: [5, 6],
           vars: { n: n, i: i, j: j },
@@ -247,6 +253,7 @@ function* insertionSort(original) {
         // 앞의 값이 더 작으면 제자리를 찾은 것 (7번 줄)
         yield {
           array: arr.slice(),
+          pivot: j,
           ordered: ordered.slice(),
           lines: [7],
           vars: { n: n, i: i, j: j },
@@ -541,6 +548,7 @@ function* partition(arr, low, high, sorted) {
     yield {
       array: arr.slice(),
       swap: [i, high],
+      pivot: i,   // 피벗은 교환으로 i번에 와 있다
       sorted: sorted.slice(),
       blockStart: makeQuickBlockStart(sorted),
       leftGroup: [low, i - 1],
