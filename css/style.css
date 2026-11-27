@@ -28,6 +28,7 @@
   --color-goal: #e05252;      /* 도착점 */
   --color-queued: #ffe9a8;    /* 대기 중 (큐에 들어 있는 칸) */
   --color-visited: #b9d3f5;   /* 방문 완료 (큐에서 꺼내 처리한 칸) */
+  --color-path: #8e6ad8;      /* 최종 경로 */
   --color-current: #f28c28;   /* 지금 꺼낸 칸 */
 }
 
@@ -425,6 +426,10 @@ select {
   background: var(--color-visited);
 }
 
+.cell.path {
+  background: var(--color-path);
+}
+
 .cell.start {
   background: var(--color-start);
 }
@@ -461,6 +466,10 @@ select {
 
 .swatch.visited {
   background: var(--color-visited);
+}
+
+.swatch.path {
+  background: var(--color-path);
 }
 
 .swatch.current {

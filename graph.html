@@ -60,11 +60,14 @@
               <li><code>시작 칸을 큐에 넣고 방문 표시</code></li>
               <li><code>큐가 빌 때까지 반복</code></li>
               <li><code>  큐 앞에서 칸을 꺼냄 (현재 칸)</code></li>
-              <li><code>  현재 칸이 도착점이면 탐색 성공</code></li>
+              <li><code>  현재 칸이 도착점이면 반복 멈춤</code></li>
               <li><code>  위·오른쪽·아래·왼쪽 이웃마다</code></li>
               <li><code>    벽이거나 방문 표시된 칸이면 건너뜀</code></li>
-              <li><code>    방문 표시하고 큐 뒤에 넣음</code></li>
-              <li><code>도착점에 갈 수 없음</code></li>
+              <li><code>    방문 표시, 이전 칸 기록, 큐 뒤에 넣음</code></li>
+              <li><code>도착점에 도착했으면</code></li>
+              <li><code>  이전 칸을 따라 시작점까지 거슬러 올라가 경로를 만듦</code></li>
+              <li><code>  경로를 시작점부터 한 칸씩 칠함</code></li>
+              <li><code>아니면 도착점에 갈 수 없음</code></li>
             </ol>
           </div>
           <!-- 지금 단계의 변수 값 (예: 현재 칸 = (3, 5) · 큐 크기 = 4) -->
@@ -73,6 +76,8 @@
       </div>
 
       <p id="message" class="message"></p>
+      <!-- 지금까지 꺼내 처리한 칸 수와 찾은 경로의 칸 수: graph.js가 한 단계마다 갱신한다 -->
+      <p>방문한 칸 <span id="visit-count">0</span>칸 · 경로 길이 <span id="path-length">-</span></p>
 
       <!-- 칸 색의 의미 -->
       <ul class="legend">
@@ -82,6 +87,7 @@
         <li><span class="swatch queued"></span>대기 중 (큐 안)</li>
         <li><span class="swatch current"></span>현재 칸</li>
         <li><span class="swatch visited"></span>방문 완료 (꺼낸 칸)</li>
+        <li><span class="swatch path"></span>최종 경로</li>
       </ul>
     </section>
   </main>

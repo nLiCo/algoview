@@ -1,5 +1,5 @@
 // ===== 탐색 시각화 (graph.html) =====
-// 격자 만들기·크기 입력, 벽·시작·도착 편집, BFS 단계 실행. DFS와 경로 표시는 이후 단계에서 추가한다.
+// 격자 만들기·크기 입력, 벽·시작·도착 편집, BFS 단계 실행과 경로 표시. DFS는 이후 단계에서 추가한다.
 
 // ----- 설정 -----
 const MIN_SIZE = 5;
@@ -29,13 +29,15 @@ const message = document.getElementById('message');
 const codeScroll = document.getElementById('code-scroll');   // 의사코드의 스크롤되는 부분
 const codeItems = document.querySelectorAll('#code-scroll li');   // 의사코드의 줄들
 const codeVars = document.getElementById('code-vars');
+const visitCountText = document.getElementById('visit-count');
+const pathLengthText = document.getElementById('path-length');
 
 // ----- 상태 -----
 let rows = DEFAULT_ROWS;   // 지금 격자의 행 수
 let cols = DEFAULT_COLS;   // 지금 격자의 열 수
 let cells = [];            // cells[행][열] = 칸 div
 let walls = [];            // walls[행][열] = 벽이면 true
-let marks = [];            // marks[행][열] = 탐색 표시: null, 'queued'(대기 중), 'visited'(방문 완료), 'current'(현재 칸)
+let marks = [];            // marks[행][열] = 탐색 표시: null, 'queued'(대기 중), 'visited'(방문 완료), 'current'(현재 칸), 'path'(최종 경로)
 let startPos = null;       // 시작점 { row, col }
 let goalPos = null;        // 도착점 { row, col }
 let dragMode = null;       // 끌고 있는 동작: 'draw'(벽 그리기) 'erase'(벽 지우기) 'start' 'goal' (끌고 있지 않으면 null)
@@ -120,7 +122,7 @@ function drawCell(row, col) {
     cell.classList.add('goal');
   }
   if (marks[row][col] !== null) {
-    cell.classList.add(marks[row][col]);   // 'queued', 'visited', 'current'
+    cell.classList.add(marks[row][col]);   // 'queued', 'visited', 'current', 'path'
   }
 }
 
@@ -343,39 +345,74 @@ function positionText(pos) {
 }
 
 // BFS 제너레이터: 큐에서 칸 하나를 꺼내 처리할 때마다 한 단계를 내보낸다 (yield)
-// 내보내는 상태: current(꺼낸 칸), added(이번에 큐에 넣은 칸들), lines(실행된 의사코드 줄),
-//   vars(그 줄을 실행한 뒤의 변수 값), message(설명), done(탐색이 끝났는가), found(도착점을 찾았는가)
+// 도착점을 꺼내면 그 뒤로 최종 경로를 시작점 쪽부터 한 칸씩 칠하는 단계가 이어진다
+// 내보내는 상태: current(꺼낸 칸), added(이번에 큐에 넣은 칸들), pathCell(이번에 경로로 칠할 칸),
+//   visitCount(지금까지 꺼낸 칸 수), pathLength(경로의 칸 수. 아직 모르면 null, 경로가 없으면 0),
+//   lines(실행된 의사코드 줄), vars(그 줄을 실행한 뒤의 변수 값), message(설명), done(탐색이 끝났는가)
 // 방문 표시는 큐에 넣을 때 한다. 그래서 같은 칸이 큐에 두 번 들어가지 않는다
+// prev[행][열]는 그 칸에 오기 직전의 칸이다. 도착점에서 prev를 따라가면 시작점까지의 경로가 나온다
 function* bfs(walls, start, goal) {
   const rowCount = walls.length;
   const colCount = walls[0].length;
 
   // visited[행][열]: 큐에 넣은 적이 있는 칸 (대기 중이거나 이미 꺼낸 칸)
   const visited = [];
+  const prev = [];
   for (let r = 0; r < rowCount; r++) {
     visited.push(new Array(colCount).fill(false));
+    prev.push(new Array(colCount).fill(null));
   }
 
   const queue = [start];
   visited[start.row][start.col] = true;
+  let visitCount = 0;     // 지금까지 큐에서 꺼낸 칸 수
   let firstStep = true;   // 첫 단계에는 1번 줄(시작 칸 넣기)도 함께 실행된 것으로 본다
 
   while (queue.length > 0) {
     const current = queue.shift();
+    visitCount++;
     const lines = firstStep ? [1, 2, 3, 4] : [2, 3, 4];
     firstStep = false;
 
-    // 도착점에서 꺼냈으면 탐색 성공
+    // 도착점에서 꺼냈으면 탐색 성공: 이제 경로를 찾아 칠한다
     if (current.row === goal.row && current.col === goal.col) {
       yield {
         current: current,
         added: [],
+        pathCell: null,
+        visitCount: visitCount,
+        pathLength: null,
         lines: lines,
         vars: { '현재 칸': positionText(current), '큐 크기': queue.length },
-        message: positionText(current) + ' 칸을 꺼냈습니다. 도착점에 도착했습니다!',
-        done: true,
-        found: true
+        message: positionText(current) + ' 칸을 꺼냈습니다. 도착점입니다! 이전 칸을 따라 거슬러 올라가 경로를 찾습니다.',
+        done: false
       };
+
+      // 도착점에서 prev를 따라 시작점까지 거슬러 올라가며 모은 뒤, 뒤집어서 시작점부터 칠한다
+      const path = [];
+      for (let pos = goal; pos !== null; pos = prev[pos.row][pos.col]) {
+        path.push(pos);
+      }
+      path.reverse();
+
+      for (let i = 0; i < path.length; i++) {
+        const isLast = (i === path.length - 1);
+        let message = '경로의 ' + (i + 1) + '번째: ' + positionText(path[i]) + ' 칸을 칠했습니다.';
+        if (isLast) {
+          message = '경로를 모두 칠했습니다. 경로는 ' + path.length + '칸입니다.';
+        }
+        yield {
+          current: null,
+          added: [],
+          pathCell: path[i],
+          visitCount: visitCount,
+          pathLength: path.length,
+          lines: (i === 0) ? [8, 9, 10] : [10],
+          vars: { '경로 길이': path.length, '칠한 칸': i + 1 },
+          message: message,
+          done: isLast
+        };
+      }
       return;
     }
 
@@ -392,6 +429,7 @@ function* bfs(walls, start, goal) {
         continue;
       }
       visited[r][c] = true;
+      prev[r][c] = current;
       const next = { row: r, col: c };
       queue.push(next);
       added.push(next);
@@ -409,11 +447,13 @@ function* bfs(walls, start, goal) {
     yield {
       current: current,
       added: added,
+      pathCell: null,
+      visitCount: visitCount,
+      pathLength: null,
       lines: lines,
       vars: { '현재 칸': positionText(current), '큐 크기': queue.length },
       message: message,
-      done: false,
-      found: false
+      done: false
     };
   }
 
@@ -421,15 +461,18 @@ function* bfs(walls, start, goal) {
   yield {
     current: null,
     added: [],
-    lines: [2, 8],
+    pathCell: null,
+    visitCount: visitCount,
+    pathLength: 0,
+    lines: [2, 11],
     vars: { '큐 크기': 0 },
     message: '큐가 비었습니다. 도착점에 갈 수 없습니다.',
-    done: true,
-    found: false
+    done: true
   };
 }
 
-// 한 단계의 결과를 격자에 반영한다: 이전 현재 칸은 방문 완료로, 새로 넣은 칸은 대기 중으로, 꺼낸 칸은 현재 칸으로 칠한다
+// 한 단계의 결과를 격자에 반영한다: 이전 현재 칸은 방문 완료로, 새로 넣은 칸은 대기 중으로,
+// 꺼낸 칸은 현재 칸으로, 경로로 칠할 칸은 경로로 칠한다
 function showSearchState(state) {
   if (currentPos !== null) {
     marks[currentPos.row][currentPos.col] = 'visited';
@@ -446,7 +489,24 @@ function showSearchState(state) {
     marks[currentPos.row][currentPos.col] = 'current';
     drawCell(currentPos.row, currentPos.col);
   }
+
+  if (state.pathCell !== null) {
+    marks[state.pathCell.row][state.pathCell.col] = 'path';
+    drawCell(state.pathCell.row, state.pathCell.col);
+  }
   searchShown = true;
+}
+
+// 방문한 칸 수와 경로 길이를 보여 준다. pathLength가 null이면 아직 모르는 것(-), 0이면 경로가 없는 것이다
+function showCounts(visitCount, pathLength) {
+  visitCountText.textContent = visitCount;
+  if (pathLength === null) {
+    pathLengthText.textContent = '-';
+  } else if (pathLength === 0) {
+    pathLengthText.textContent = '없음';
+  } else {
+    pathLengthText.textContent = pathLength + '칸';
+  }
 }
 
 // 탐색 진행과 격자의 탐색 표시를 모두 지운다 (벽·시작·도착은 그대로)
@@ -463,6 +523,7 @@ function clearSearch() {
   runBtn.textContent = '실행';
   highlightLines([]);
   showVars(null);
+  showCounts(0, null);
 }
 
 
@@ -512,6 +573,7 @@ function doStep() {
   const state = result.value;
 
   showSearchState(state);
+  showCounts(state.visitCount, state.pathLength);
   highlightLines(state.lines);
   showVars(state.vars);
   message.textContent = state.message;
