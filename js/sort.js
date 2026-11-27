@@ -657,10 +657,10 @@ function resetCounts() {
 
 
 // ----- 배열 만들기 -----
-// 입력값이 범위를 벗어나면 5~50 안으로 맞춰 준다
+// 입력값이 범위를 벗어나면 5~50 안으로 맞춰 준다. 소수(예: 7.5)는 반올림한다
 function readSize() {
-  let size = Number(sizeInput.value);
-  if (!Number.isInteger(size) || size < MIN_SIZE) {
+  let size = Math.round(Number(sizeInput.value));
+  if (Number.isNaN(size) || size < MIN_SIZE) {
     size = MIN_SIZE;
   }
   if (size > MAX_SIZE) {
